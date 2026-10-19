@@ -1,0 +1,62 @@
+{
+  "version": "0.5.0",
+  "simulationSeconds": 1800,
+  "steps": 36000,
+  "kills": 176,
+  "initialLevel": 5,
+  "finalLevel": 9,
+  "initialGold": 1678,
+  "finalGold": 4918,
+  "checkpoints": [
+    {
+      "tick": 2523,
+      "bytes": 31533,
+      "entities": 47,
+      "active": 18,
+      "inactive": 29
+    },
+    {
+      "tick": 8523,
+      "bytes": 33164,
+      "entities": 47,
+      "active": 18,
+      "inactive": 29
+    },
+    {
+      "tick": 14523,
+      "bytes": 34350,
+      "entities": 47,
+      "active": 18,
+      "inactive": 29
+    },
+    {
+      "tick": 20523,
+      "bytes": 35121,
+      "entities": 47,
+      "active": 18,
+      "inactive": 29
+    },
+    {
+      "tick": 26523,
+      "bytes": 33360,
+      "entities": 47,
+      "active": 18,
+      "inactive": 29
+    },
+    {
+      "tick": 32523,
+      "bytes": 31710,
+      "entities": 47,
+      "active": 18,
+      "inactive": 29
+    }
+  ],
+  "tickMs": {
+    "p50": 0.06849999999940337,
+    "p95": 0.15204200000061974,
+    "p99": 0.2725829999999405,
+    "max": 29.517375000000357
+  },
+  "grants": false,
+  "note": "Accelerated shared-core journey from character creation through three starter quests and real portals into riverlands. Commands allocate earned attributes, equip earned gear, heal with learned MP/cooldown, AUTO with radius12 and pickup. Does not measure rendering or device FPS. Timing includes test runner overhead/GC and is not a deterministic assertion."
+}

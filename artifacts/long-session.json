@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 2,
+  "simulationHours": 4,
+  "ticks": 288000,
+  "elapsedMs": 24498,
+  "maxEntities": 21,
+  "maxProjectiles": 1,
+  "checkpoints": [
+    {
+      "tick": 251,
+      "bytes": 13350,
+      "entities": 19
+    },
+    {
+      "tick": 36251,
+      "bytes": 76407,
+      "entities": 21
+    },
+    {
+      "tick": 72251,
+      "bytes": 74640,
+      "entities": 19
+    },
+    {
+      "tick": 108251,
+      "bytes": 78602,
+      "entities": 19
+    },
+    {
+      "tick": 144251,
+      "bytes": 78188,
+      "entities": 19
+    },
+    {
+      "tick": 180251,
+      "bytes": 81791,
+      "entities": 19
+    },
+    {
+      "tick": 216251,
+      "bytes": 81825,
+      "entities": 19
+    },
+    {
+      "tick": 252251,
+      "bytes": 81661,
+      "entities": 19
+    }
+  ],
+  "finalTick": 289450,
+  "finalHp": 2088,
+  "note": "Mô phỏng headless tăng tốc; không phải 4 giờ render hay đo hiệu suất điện thoại thật."
+}

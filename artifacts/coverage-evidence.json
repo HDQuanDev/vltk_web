@@ -1,0 +1,34 @@
+{
+  "contentVersion": "0.5.0",
+  "playableMaps": [
+    "village",
+    "forest",
+    "camp",
+    "highlands",
+    "riverlands",
+    "thanhvanson"
+  ],
+  "questDefinitions": 28,
+  "coreJourneyQuestIds": [
+    "bandits",
+    "wolves",
+    "boss"
+  ],
+  "browserJourneyQuestIds": [
+    "highland-route"
+  ],
+  "questsNotYetAcceptedViaFullJourney": 24,
+  "productionReadyProps": 0,
+  "reviewRequiredProps": 4,
+  "reviewRequiredGroundMaterials": 1,
+  "developmentAssets": [
+    "7 procedural actor atlas families",
+    "3 static NPC sprite families",
+    "portrait SVG",
+    "3 procedural decor families",
+    "code-native UI icons",
+    "procedural terrain"
+  ],
+  "validationErrors": 0,
+  "note": "Full-journey IDs denote explicit tested journeys; remaining quest definitions have rule/reference coverage, not full browser acceptance. New region reuses existing monster/boss definitions."
+}

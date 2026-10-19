@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "types": ["vite/client", "node"],
+    "baseUrl": ".",
+    "paths": {
+      "@kiem-hiep/game-core": ["packages/game-core/src/index.ts"],
+      "@kiem-hiep/game-content": ["packages/game-content/src/index.ts"],
+      "@kiem-hiep/game-session": ["packages/game-session/src/index.ts"],
+      "@kiem-hiep/game-storage": ["packages/game-storage/src/index.ts"],
+      "@kiem-hiep/game-protocol": ["packages/game-protocol/src/index.ts"]
+    }
+  },
+  "include": [
+    "apps/web/src",
+    "packages",
+    "tests",
+    "*.ts",
+    "apps/web/vite.config.ts"
+  ]
+}

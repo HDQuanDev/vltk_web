@@ -1,0 +1,784 @@
+{
+  "version": "0.5.0",
+  "navigation": [
+    {
+      "id": "highlands",
+      "width": 128,
+      "height": 128,
+      "indexMs": 25.369416,
+      "cold": [
+        {
+          "area": "wayfarer-hamlet",
+          "ms": 0.4143749999998363,
+          "tiles": 1,
+          "visited": 2
+        },
+        {
+          "area": "bamboo-pass",
+          "ms": 45.74483299999997,
+          "tiles": 27,
+          "visited": 193
+        },
+        {
+          "area": "old-quarry",
+          "ms": 19.164332999999942,
+          "tiles": 59,
+          "visited": 121
+        },
+        {
+          "area": "plum-garden",
+          "ms": 7.606708000000026,
+          "tiles": 41,
+          "visited": 65
+        },
+        {
+          "area": "hunter-rest",
+          "ms": 7.226666999999907,
+          "tiles": 88,
+          "visited": 179
+        },
+        {
+          "area": "serpent-marsh",
+          "ms": 2.2271250000001146,
+          "tiles": 116,
+          "visited": 228
+        },
+        {
+          "area": "ruined-shrine",
+          "ms": 0.9497499999999945,
+          "tiles": 98,
+          "visited": 180
+        },
+        {
+          "area": "black-watch",
+          "ms": 0.6457080000000133,
+          "tiles": 153,
+          "visited": 322
+        }
+      ],
+      "warmP95Ms": 0.003500000000030923,
+      "diagnostics": {
+        "revision": 1,
+        "chunks": 64,
+        "indexBytes": 81920,
+        "components": 64,
+        "cachedRoutes": 8,
+        "queries": 48,
+        "cacheHits": 40,
+        "visited": 1211,
+        "chunkVisited": 79,
+        "lastVisited": 0,
+        "failures": 0
+      }
+    },
+    {
+      "id": "riverlands",
+      "width": 256,
+      "height": 256,
+      "indexMs": 30.516209000000117,
+      "cold": [
+        {
+          "area": "river-outpost",
+          "ms": 0.26083300000004783,
+          "tiles": 1,
+          "visited": 2
+        },
+        {
+          "area": "west-bamboo",
+          "ms": 0.8550419999999122,
+          "tiles": 44,
+          "visited": 113
+        },
+        {
+          "area": "river-crossing",
+          "ms": 1.7577909999999974,
+          "tiles": 110,
+          "visited": 208
+        },
+        {
+          "area": "east-stockade",
+          "ms": 1.2462500000001455,
+          "tiles": 174,
+          "visited": 338
+        },
+        {
+          "area": "stone-pit",
+          "ms": 4.7925840000000335,
+          "tiles": 258,
+          "visited": 556
+        },
+        {
+          "area": "wolf-valley",
+          "ms": 3.135124999999789,
+          "tiles": 98,
+          "visited": 167
+        },
+        {
+          "area": "reed-camp",
+          "ms": 11.093665999999985,
+          "tiles": 154,
+          "visited": 273
+        },
+        {
+          "area": "venom-bank",
+          "ms": 4.366625000000113,
+          "tiles": 231,
+          "visited": 526
+        },
+        {
+          "area": "abandoned-garden",
+          "ms": 1.159208000000035,
+          "tiles": 153,
+          "visited": 246
+        },
+        {
+          "area": "south-watch",
+          "ms": 9.676125000000184,
+          "tiles": 230,
+          "visited": 345
+        },
+        {
+          "area": "hidden-ravine",
+          "ms": 1.205459000000019,
+          "tiles": 312,
+          "visited": 717
+        },
+        {
+          "area": "river-fort",
+          "ms": 7.132500000000164,
+          "tiles": 388,
+          "visited": 847
+        }
+      ],
+      "warmP95Ms": 0.009000000000014552,
+      "diagnostics": {
+        "revision": 1,
+        "chunks": 256,
+        "indexBytes": 327680,
+        "components": 263,
+        "cachedRoutes": 12,
+        "queries": 72,
+        "cacheHits": 60,
+        "visited": 3768,
+        "chunkVisited": 570,
+        "lastVisited": 0,
+        "failures": 0
+      }
+    }
+  ],
+  "simulationTour": [
+    {
+      "round": 0,
+      "area": "river-outpost",
+      "entities": 6,
+      "snapshotBytes": 4766,
+      "diagnostics": {
+        "active": 1,
+        "nearby": 0,
+        "inactive": 5,
+        "aiUpdated": 0,
+        "spawned": 0,
+        "deferred": 0,
+        "checks": 0
+      },
+      "tickP95Ms": 0.1447089999999207,
+      "cloneP95Ms": 0.08904200000006313
+    },
+    {
+      "round": 0,
+      "area": "west-bamboo",
+      "entities": 16,
+      "snapshotBytes": 11452,
+      "diagnostics": {
+        "active": 6,
+        "nearby": 5,
+        "inactive": 5,
+        "aiUpdated": 10,
+        "spawned": 0,
+        "deferred": 0,
+        "checks": 0
+      },
+      "tickP95Ms": 0.6520000000000437,
+      "cloneP95Ms": 0.18870799999990595
+    },
+    {
+      "round": 0,
+      "area": "river-crossing",
+      "entities": 16,
+      "snapshotBytes": 11470,
+      "diagnostics": {
+        "active": 1,
+        "nearby": 9,
+        "inactive": 6,
+        "aiUpdated": 9,
+        "spawned": 0,
+        "deferred": 0,
+        "checks": 0
+      },
+      "tickP95Ms": 0.1283330000001115,
+      "cloneP95Ms": 0.16908300000000054
+    },
+    {
+      "round": 0,
+      "area": "east-stockade",
+      "entities": 26,
+      "snapshotBytes": 18409,
+      "diagnostics": {
+        "active": 4,
+        "nearby": 7,
+        "inactive": 15,
+        "aiUpdated": 10,
+        "spawned": 0,
+        "deferred": 0,
+        "checks": 0
+      },
+      "tickP95Ms": 0.25499999999988177,
+      "cloneP95Ms": 0.3653750000000855
+    },
+    {
+      "round": 0,
+      "area": "stone-pit",
+      "entities": 36,
+      "snapshotBytes": 25371,
+      "diagnostics": {
+        "active": 4,
+        "nearby": 16,
+        "inactive": 16,
+        "aiUpdated": 19,
+        "spawned": 0,
+        "deferred": 0,
+        "checks": 0
+      },
+      "tickP95Ms": 0.30729200000018864,
+      "cloneP95Ms": 4.073624999999993
+    },
+    {
+      "round": 0,
+      "area": "wolf-valley",
+      "entities": 48,
+      "snapshotBytes": 33418,
+      "diagnostics": {
+        "active": 4,
+        "nearby": 9,
+        "inactive": 35,
+        "aiUpdated": 12,
+        "spawned": 0,
+        "deferred": 0,
+        "checks": 0
+      },
+      "tickP95Ms": 1.0535419999998794,
+      "cloneP95Ms": 1.0317500000001019
+    },
+    {
+      "round": 0,
+      "area": "reed-camp",
+      "entities": 48,
+      "snapshotBytes": 33437,
+      "diagnostics": {
+        "active": 6,
+        "nearby": 7,
+        "inactive": 35,
+        "aiUpdated": 12,
+        "spawned": 0,
+        "deferred": 0,
+        "checks": 0
+      },
+      "tickP95Ms": 1.1226669999998649,
+      "cloneP95Ms": 2.4839170000000195
+    },
+    {
+      "round": 0,
+      "area": "venom-bank",
+      "entities": 58,
+      "snapshotBytes": 40554,
+      "diagnostics": {
+        "active": 4,
+        "nearby": 7,
+        "inactive": 47,
+        "aiUpdated": 10,
+        "spawned": 0,
+        "deferred": 0,
+        "checks": 0
+      },
+      "tickP95Ms": 1.307833999999957,
+      "cloneP95Ms": 0.8447080000000824
+    },
+    {
+      "round": 0,
+      "area": "abandoned-garden",
+      "entities": 68,
+      "snapshotBytes": 47544,
+      "diagnostics": {
+        "active": 7,
+        "nearby": 4,
+        "inactive": 57,
+        "aiUpdated": 10,
+        "spawned": 0,
+        "deferred": 0,
+        "checks": 0
+      },
+      "tickP95Ms": 0.389042000000245,
+      "cloneP95Ms": 3.9812079999996968
+    },
+    {
+      "round": 0,
+      "area": "south-watch",
+      "entities": 78,
+      "snapshotBytes": 54298,
+      "diagnostics": {
+        "active": 5,
+        "nearby": 11,
+        "inactive": 62,
+        "aiUpdated": 15,
+        "spawned": 0,
+        "deferred": 0,
+        "checks": 0
+      },
+      "tickP95Ms": 2.223000000000411,
+      "cloneP95Ms": 6.3006249999998545
+    },
+    {
+      "round": 0,
+      "area": "hidden-ravine",
+      "entities": 88,
+      "snapshotBytes": 61109,
+      "diagnostics": {
+        "active": 4,
+        "nearby": 14,
+        "inactive": 70,
+        "aiUpdated": 17,
+        "spawned": 0,
+        "deferred": 0,
+        "checks": 0
+      },
+      "tickP95Ms": 0.6419580000001588,
+      "cloneP95Ms": 1.9862499999999272
+    },
+    {
+      "round": 0,
+      "area": "river-fort",
+      "entities": 97,
+      "snapshotBytes": 67608,
+      "diagnostics": {
+        "active": 2,
+        "nearby": 8,
+        "inactive": 87,
+        "aiUpdated": 9,
+        "spawned": 0,
+        "deferred": 0,
+        "checks": 0
+      },
+      "tickP95Ms": 0.31116600000041217,
+      "cloneP95Ms": 1.2390829999999369
+    },
+    {
+      "round": 1,
+      "area": "river-outpost",
+      "entities": 97,
+      "snapshotBytes": 67606,
+      "diagnostics": {
+        "active": 1,
+        "nearby": 0,
+        "inactive": 96,
+        "aiUpdated": 0,
+        "spawned": 0,
+        "deferred": 0,
+        "checks": 0
+      },
+      "tickP95Ms": 1.190042000000176,
+      "cloneP95Ms": 7.028291999999965
+    },
+    {
+      "round": 1,
+      "area": "west-bamboo",
+      "entities": 97,
+      "snapshotBytes": 67701,
+      "diagnostics": {
+        "active": 3,
+        "nearby": 8,
+        "inactive": 86,
+        "aiUpdated": 10,
+        "spawned": 0,
+        "deferred": 0,
+        "checks": 0
+      },
+      "tickP95Ms": 2.2712910000000193,
+      "cloneP95Ms": 4.082625000000007
+    },
+    {
+      "round": 1,
+      "area": "river-crossing",
+      "entities": 97,
+      "snapshotBytes": 67684,
+      "diagnostics": {
+        "active": 1,
+        "nearby": 9,
+        "inactive": 87,
+        "aiUpdated": 9,
+        "spawned": 0,
+        "deferred": 0,
+        "checks": 0
+      },
+      "tickP95Ms": 1.053874999999607,
+      "cloneP95Ms": 4.124915999999757
+    },
+    {
+      "round": 1,
+      "area": "east-stockade",
+      "entities": 97,
+      "snapshotBytes": 67635,
+      "diagnostics": {
+        "active": 5,
+        "nearby": 6,
+        "inactive": 86,
+        "aiUpdated": 10,
+        "spawned": 0,
+        "deferred": 0,
+        "checks": 0
+      },
+      "tickP95Ms": 0.9780420000001868,
+      "cloneP95Ms": 5.684625000000324
+    },
+    {
+      "round": 1,
+      "area": "stone-pit",
+      "entities": 97,
+      "snapshotBytes": 67792,
+      "diagnostics": {
+        "active": 5,
+        "nearby": 16,
+        "inactive": 76,
+        "aiUpdated": 20,
+        "spawned": 0,
+        "deferred": 0,
+        "checks": 0
+      },
+      "tickP95Ms": 0.366457999999966,
+      "cloneP95Ms": 2.2900840000002063
+    },
+    {
+      "round": 1,
+      "area": "wolf-valley",
+      "entities": 97,
+      "snapshotBytes": 67816,
+      "diagnostics": {
+        "active": 4,
+        "nearby": 9,
+        "inactive": 84,
+        "aiUpdated": 12,
+        "spawned": 0,
+        "deferred": 0,
+        "checks": 0
+      },
+      "tickP95Ms": 0.3047910000000229,
+      "cloneP95Ms": 0.7439580000000205
+    },
+    {
+      "round": 1,
+      "area": "reed-camp",
+      "entities": 97,
+      "snapshotBytes": 67778,
+      "diagnostics": {
+        "active": 6,
+        "nearby": 10,
+        "inactive": 81,
+        "aiUpdated": 15,
+        "spawned": 0,
+        "deferred": 0,
+        "checks": 0
+      },
+      "tickP95Ms": 1.3893330000000788,
+      "cloneP95Ms": 5.893374999999651
+    },
+    {
+      "round": 1,
+      "area": "venom-bank",
+      "entities": 97,
+      "snapshotBytes": 68016,
+      "diagnostics": {
+        "active": 3,
+        "nearby": 8,
+        "inactive": 86,
+        "aiUpdated": 10,
+        "spawned": 0,
+        "deferred": 0,
+        "checks": 0
+      },
+      "tickP95Ms": 1.3480830000003152,
+      "cloneP95Ms": 6.923792000000049
+    },
+    {
+      "round": 1,
+      "area": "abandoned-garden",
+      "entities": 97,
+      "snapshotBytes": 68148,
+      "diagnostics": {
+        "active": 7,
+        "nearby": 4,
+        "inactive": 86,
+        "aiUpdated": 10,
+        "spawned": 0,
+        "deferred": 0,
+        "checks": 0
+      },
+      "tickP95Ms": 0.5462079999997513,
+      "cloneP95Ms": 1.959708999999748
+    },
+    {
+      "round": 1,
+      "area": "south-watch",
+      "entities": 97,
+      "snapshotBytes": 68050,
+      "diagnostics": {
+        "active": 5,
+        "nearby": 11,
+        "inactive": 81,
+        "aiUpdated": 15,
+        "spawned": 0,
+        "deferred": 0,
+        "checks": 0
+      },
+      "tickP95Ms": 3.2853339999996933,
+      "cloneP95Ms": 4.050708000000213
+    },
+    {
+      "round": 1,
+      "area": "hidden-ravine",
+      "entities": 97,
+      "snapshotBytes": 67831,
+      "diagnostics": {
+        "active": 4,
+        "nearby": 15,
+        "inactive": 78,
+        "aiUpdated": 18,
+        "spawned": 0,
+        "deferred": 0,
+        "checks": 0
+      },
+      "tickP95Ms": 1.5043329999998605,
+      "cloneP95Ms": 6.716499999999542
+    },
+    {
+      "round": 1,
+      "area": "river-fort",
+      "entities": 97,
+      "snapshotBytes": 68020,
+      "diagnostics": {
+        "active": 1,
+        "nearby": 9,
+        "inactive": 87,
+        "aiUpdated": 9,
+        "spawned": 0,
+        "deferred": 0,
+        "checks": 0
+      },
+      "tickP95Ms": 1.1652500000000146,
+      "cloneP95Ms": 7.6050420000001395
+    },
+    {
+      "round": 2,
+      "area": "river-outpost",
+      "entities": 97,
+      "snapshotBytes": 68018,
+      "diagnostics": {
+        "active": 1,
+        "nearby": 0,
+        "inactive": 96,
+        "aiUpdated": 0,
+        "spawned": 0,
+        "deferred": 0,
+        "checks": 0
+      },
+      "tickP95Ms": 0.24074999999993452,
+      "cloneP95Ms": 2.510874999999942
+    },
+    {
+      "round": 2,
+      "area": "west-bamboo",
+      "entities": 97,
+      "snapshotBytes": 68013,
+      "diagnostics": {
+        "active": 5,
+        "nearby": 6,
+        "inactive": 86,
+        "aiUpdated": 10,
+        "spawned": 0,
+        "deferred": 0,
+        "checks": 0
+      },
+      "tickP95Ms": 0.4468750000005457,
+      "cloneP95Ms": 2.0674589999998716
+    },
+    {
+      "round": 2,
+      "area": "river-crossing",
+      "entities": 97,
+      "snapshotBytes": 67981,
+      "diagnostics": {
+        "active": 1,
+        "nearby": 7,
+        "inactive": 89,
+        "aiUpdated": 7,
+        "spawned": 0,
+        "deferred": 0,
+        "checks": 0
+      },
+      "tickP95Ms": 1.5235419999999067,
+      "cloneP95Ms": 8.716625000000022
+    },
+    {
+      "round": 2,
+      "area": "east-stockade",
+      "entities": 97,
+      "snapshotBytes": 68027,
+      "diagnostics": {
+        "active": 4,
+        "nearby": 7,
+        "inactive": 86,
+        "aiUpdated": 10,
+        "spawned": 0,
+        "deferred": 0,
+        "checks": 0
+      },
+      "tickP95Ms": 2.641375000000153,
+      "cloneP95Ms": 2.8467909999999392
+    },
+    {
+      "round": 2,
+      "area": "stone-pit",
+      "entities": 97,
+      "snapshotBytes": 68169,
+      "diagnostics": {
+        "active": 5,
+        "nearby": 15,
+        "inactive": 77,
+        "aiUpdated": 19,
+        "spawned": 0,
+        "deferred": 0,
+        "checks": 0
+      },
+      "tickP95Ms": 0.40291699999943376,
+      "cloneP95Ms": 0.7969999999995707
+    },
+    {
+      "round": 2,
+      "area": "wolf-valley",
+      "entities": 97,
+      "snapshotBytes": 68208,
+      "diagnostics": {
+        "active": 4,
+        "nearby": 9,
+        "inactive": 84,
+        "aiUpdated": 12,
+        "spawned": 0,
+        "deferred": 0,
+        "checks": 0
+      },
+      "tickP95Ms": 1.8027499999998327,
+      "cloneP95Ms": 1.251125000000684
+    },
+    {
+      "round": 2,
+      "area": "reed-camp",
+      "entities": 97,
+      "snapshotBytes": 68143,
+      "diagnostics": {
+        "active": 6,
+        "nearby": 10,
+        "inactive": 81,
+        "aiUpdated": 15,
+        "spawned": 0,
+        "deferred": 0,
+        "checks": 0
+      },
+      "tickP95Ms": 0.6784999999999854,
+      "cloneP95Ms": 5.123042000000169
+    },
+    {
+      "round": 2,
+      "area": "venom-bank",
+      "entities": 97,
+      "snapshotBytes": 68289,
+      "diagnostics": {
+        "active": 3,
+        "nearby": 8,
+        "inactive": 86,
+        "aiUpdated": 10,
+        "spawned": 0,
+        "deferred": 0,
+        "checks": 0
+      },
+      "tickP95Ms": 2.6512080000002243,
+      "cloneP95Ms": 6.464832999999999
+    },
+    {
+      "round": 2,
+      "area": "abandoned-garden",
+      "entities": 97,
+      "snapshotBytes": 68260,
+      "diagnostics": {
+        "active": 6,
+        "nearby": 5,
+        "inactive": 86,
+        "aiUpdated": 10,
+        "spawned": 0,
+        "deferred": 0,
+        "checks": 0
+      },
+      "tickP95Ms": 0.45287499999994907,
+      "cloneP95Ms": 1.0160409999998592
+    },
+    {
+      "round": 2,
+      "area": "south-watch",
+      "entities": 97,
+      "snapshotBytes": 68393,
+      "diagnostics": {
+        "active": 4,
+        "nearby": 12,
+        "inactive": 81,
+        "aiUpdated": 15,
+        "spawned": 0,
+        "deferred": 0,
+        "checks": 0
+      },
+      "tickP95Ms": 0.3349579999994603,
+      "cloneP95Ms": 1.0029999999997017
+    },
+    {
+      "round": 2,
+      "area": "hidden-ravine",
+      "entities": 97,
+      "snapshotBytes": 68301,
+      "diagnostics": {
+        "active": 3,
+        "nearby": 16,
+        "inactive": 78,
+        "aiUpdated": 18,
+        "spawned": 0,
+        "deferred": 0,
+        "checks": 0
+      },
+      "tickP95Ms": 1.2879579999998896,
+      "cloneP95Ms": 4.580249999999978
+    },
+    {
+      "round": 2,
+      "area": "river-fort",
+      "entities": 97,
+      "snapshotBytes": 68154,
+      "diagnostics": {
+        "active": 2,
+        "nearby": 8,
+        "inactive": 87,
+        "aiUpdated": 9,
+        "spawned": 0,
+        "deferred": 0,
+        "checks": 0
+      },
+      "tickP95Ms": 0.33595900000000256,
+      "cloneP95Ms": 1.4159169999993537
+    }
+  ],
+  "note": "Node on development machine. Actual 128/256 content maps; navigation index constructed once, synchronous bounded component/portal graph plus tile search, 64 route cache. Simulation tour relocates a fixture solely to measure activation/serialization and is not a nongrant journey. Active farm evidence is farm-30min.json. Does not certify 512/1024 maps, worker loading, or mobile hardware."
+}

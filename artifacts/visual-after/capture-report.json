@@ -1,0 +1,627 @@
+[
+  {
+    "width": 1920,
+    "height": 1080,
+    "errors": [],
+    "screens": [
+      {
+        "name": "creation",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "creation-female",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "hud",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "dialogue",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "inventory",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "item-detail",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "item-tooltip",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "crafting",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "enhancement",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "enhancement-result",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "gems",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "equipment",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "skills",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "quests",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "map",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "settings",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "warehouse",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "shop",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "thanhvanson",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "combat",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "ground-loot",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "enhancement-failure",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "selection",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      }
+    ],
+    "fixture": true,
+    "pageScroll": {
+      "x": false,
+      "y": false
+    }
+  },
+  {
+    "width": 1366,
+    "height": 768,
+    "errors": [],
+    "screens": [
+      {
+        "name": "creation",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "creation-female",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "hud",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "dialogue",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "inventory",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "item-detail",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "item-tooltip",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "crafting",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "enhancement",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "enhancement-result",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "gems",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "equipment",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "skills",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "quests",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "map",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "settings",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "warehouse",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "shop",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "thanhvanson",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "combat",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "ground-loot",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "enhancement-failure",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "selection",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      }
+    ],
+    "fixture": true,
+    "pageScroll": {
+      "x": false,
+      "y": false
+    }
+  },
+  {
+    "width": 932,
+    "height": 430,
+    "errors": [],
+    "screens": [
+      {
+        "name": "creation",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "creation-female",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "hud",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "dialogue",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "inventory",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "item-detail",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "crafting",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "enhancement",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "enhancement-result",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "gems",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "equipment",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "skills",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "quests",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "map",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "settings",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "warehouse",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "shop",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "thanhvanson",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "combat",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "ground-loot",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "enhancement-failure",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "selection",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      }
+    ],
+    "fixture": true,
+    "pageScroll": {
+      "x": false,
+      "y": false
+    }
+  },
+  {
+    "width": 844,
+    "height": 390,
+    "errors": [],
+    "screens": [
+      {
+        "name": "creation",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "creation-female",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "hud",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "dialogue",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "inventory",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "item-detail",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "crafting",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "enhancement",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "enhancement-result",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "gems",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "equipment",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "skills",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "quests",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "map",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "settings",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "warehouse",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "shop",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "thanhvanson",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "combat",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "ground-loot",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "enhancement-failure",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "selection",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      }
+    ],
+    "fixture": true,
+    "pageScroll": {
+      "x": false,
+      "y": false
+    }
+  },
+  {
+    "width": 1180,
+    "height": 820,
+    "errors": [],
+    "screens": [
+      {
+        "name": "creation",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "creation-female",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "hud",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "dialogue",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "inventory",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "item-detail",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "item-tooltip",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "crafting",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "enhancement",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "enhancement-result",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "gems",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "equipment",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "skills",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "quests",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "map",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "settings",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "warehouse",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "shop",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "thanhvanson",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "combat",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "ground-loot",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "enhancement-failure",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      },
+      {
+        "name": "selection",
+        "pageOverflow": false,
+        "dialogsWithinViewport": true
+      }
+    ],
+    "fixture": true,
+    "pageScroll": {
+      "x": false,
+      "y": false
+    }
+  }
+]

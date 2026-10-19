@@ -1,0 +1,11 @@
+{
+  "name": "@kiem-hiep/game-core",
+  "version": "0.5.0",
+  "type": "module",
+  "private": true,
+  "exports": "./src/index.ts",
+  "dependencies": {
+    "@kiem-hiep/game-content": "workspace:*",
+    "@kiem-hiep/game-protocol": "workspace:*"
+  }
+}

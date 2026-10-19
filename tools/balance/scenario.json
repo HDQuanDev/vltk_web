@@ -1,0 +1,10 @@
+{
+  "level": 8,
+  "seed": 71227,
+  "seconds": 30,
+  "skillPoints": 7,
+  "attributePoints": 35,
+  "target": { "hp": 1000000, "defense": 10, "element": "metal", "distance": 1 },
+  "rotationIntervalTicks": 10,
+  "note": "Mục tiêu đứng yên, không đánh trả; cùng ngân sách cấp 8. Không thay thế thử nghiệm PvP, boss hoặc cân bằng tiến trình cấp 100."
+}

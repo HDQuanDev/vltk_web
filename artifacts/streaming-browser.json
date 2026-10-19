@@ -1,0 +1,71 @@
+{
+  "profiles": [
+    {
+      "viewport": {
+        "width": 1366,
+        "height": 768
+      },
+      "visits": 60,
+      "maxCached": 32,
+      "maxActive": 27,
+      "maxTerrainMiB": 36.564453125,
+      "missingTextures": 0,
+      "maxTextures": 40,
+      "maxObjects": 166,
+      "maxCreatedPerFrame": 2,
+      "cpuP95Ms": 5,
+      "cpuMaxMs": 8.100000008940697,
+      "lifecycleBalanced": true,
+      "afterGc": [
+        {
+          "round": 0,
+          "heapBytes": 10914000
+        },
+        {
+          "round": 1,
+          "heapBytes": 10956116
+        },
+        {
+          "round": 2,
+          "heapBytes": 10922108
+        }
+      ],
+      "renderer": "WebGL",
+      "errors": []
+    },
+    {
+      "viewport": {
+        "width": 932,
+        "height": 430
+      },
+      "visits": 60,
+      "maxCached": 26,
+      "maxActive": 17,
+      "maxTerrainMiB": 16.711097717285156,
+      "missingTextures": 0,
+      "maxTextures": 34,
+      "maxObjects": 133,
+      "maxCreatedPerFrame": 2,
+      "cpuP95Ms": 4.899999991059303,
+      "cpuMaxMs": 9,
+      "lifecycleBalanced": true,
+      "afterGc": [
+        {
+          "round": 0,
+          "heapBytes": 10619072
+        },
+        {
+          "round": 1,
+          "heapBytes": 10754236
+        },
+        {
+          "round": 2,
+          "heapBytes": 10848248
+        }
+      ],
+      "renderer": "WebGL",
+      "errors": []
+    }
+  ],
+  "note": "Chromium headless dev-only terrain/prop renderer, 60 visits and 6 map changes per viewport. CPU includes chunk creation; canvas allocation excludes GPU/native resources. Heap after GC is a short-run trend, not proof of leak-free play or real-device mobile FPS. Farm simulation measured separately."
+}

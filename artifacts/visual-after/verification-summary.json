@@ -1,0 +1,49 @@
+{
+  "date": "2026-10-19",
+  "unit_integration": 295,
+  "e2e": 56,
+  "typecheck": "pass",
+  "lint": "pass",
+  "build": "pass",
+  "content_validation": "pass",
+  "asset_validation": "pass",
+  "screenshots": [
+    {
+      "viewport": "1920x1080",
+      "screens": 23,
+      "errors": 0,
+      "overflow": 0,
+      "outside_dialogs": 0
+    },
+    {
+      "viewport": "1366x768",
+      "screens": 23,
+      "errors": 0,
+      "overflow": 0,
+      "outside_dialogs": 0
+    },
+    {
+      "viewport": "932x430",
+      "screens": 22,
+      "errors": 0,
+      "overflow": 0,
+      "outside_dialogs": 0
+    },
+    {
+      "viewport": "844x390",
+      "screens": 22,
+      "errors": 0,
+      "overflow": 0,
+      "outside_dialogs": 0
+    },
+    {
+      "viewport": "1180x820",
+      "screens": 23,
+      "errors": 0,
+      "overflow": 0,
+      "outside_dialogs": 0
+    }
+  ],
+  "real_device": false,
+  "production_art_approved": false
+}

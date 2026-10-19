@@ -1,0 +1,10 @@
+{
+  "name": "@kiem-hiep/game-protocol",
+  "version": "0.5.0",
+  "type": "module",
+  "private": true,
+  "exports": "./src/index.ts",
+  "dependencies": {
+    "zod": "^4.1.0"
+  }
+}
