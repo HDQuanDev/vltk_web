@@ -3,6 +3,17 @@ import react from "@vitejs/plugin-react";
 import tailwind from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
 import { fileURLToPath, URL } from "node:url";
+/**
+ * Host được phép truy cập dev/preview server khi mở từ LAN hoặc domain ngoài.
+ * Vite mặc định chặn Host lạ (chống DNS rebinding), nên phải khai báo tường minh.
+ * Thêm host mới vào đây khi đổi domain/tunnel; dấu chấm đầu cho phép mọi subdomain.
+ */
+const allowedHosts = [
+  "vltk.quanhd.net",
+  ".quanhd.net",
+  "ykglermamlhv6harvybrgtnr.138.2.81.196.sslip.io",
+  ".sslip.io",
+];
 export default defineConfig({
   root: fileURLToPath(new URL(".", import.meta.url)),
   plugins: [
@@ -52,7 +63,8 @@ export default defineConfig({
       ]),
     ),
   },
-  server: { port: 5173 },
+  server: { port: 5173, allowedHosts },
+  preview: { allowedHosts },
   build: {
     outDir: "dist",
     emptyOutDir: true,
