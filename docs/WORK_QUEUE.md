@@ -42,7 +42,7 @@ Danh sách việc đang mở, lấy từ [ROADMAP](ROADMAP.md) và [FULL_OFFLINE
 
 | ID   | Việc                                                                        | Trạng thái | Điều kiện hoàn thành                                                                     |
 | ---- | --------------------------------------------------------------------------- | ---------- | ---------------------------------------------------------------------------------------- |
-| E1   | Production actor/monster/NPC/tile/prop thay procedural                      | open       | Có asset sản xuất + atlas 8 hướng/11 state; không gọi placeholder là production           |
+| E1   | Production actor/monster/NPC/tile/prop thay procedural                      | in-progress | 16 bộ sprite quái (624 PNG) + 21 bộ sprite nhân vật theo (phái, giới) (819 PNG) đã nối runtime (map/lobby) với fallback procedural; NPC/tile/prop còn procedural, chưa đạt 8 hướng/11 state. Ảnh: `artifacts/monster-sprites/`, `artifacts/actor-sprites/` |
 | E2   | VFX/kỹ năng: trail, projectile, nổ, vùng, ngũ hành, buff/debuff, telegraph   | open       | Mỗi kỹ năng có phản hồi hình ảnh/âm thanh đúng thời điểm                                 |
 | E3   | Audio thật: nhạc theo vùng/boss, SFX vũ khí/kỹ năng/loot/mua bán/đập đồ      | open       | Asset thật, có mixer/volume; không dùng synth tối thiểu rồi báo hoàn tất                  |
 

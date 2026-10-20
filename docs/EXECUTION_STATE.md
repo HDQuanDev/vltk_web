@@ -1,4 +1,108 @@
-# Phiên visual overhaul — 19/10/2026 (mới nhất)
+# Phiên thay art giao diện + môi trường v3 — 20/10/2026 (mới nhất)
+
+Scope: chỉ tài nguyên hiển thị. Không sửa logic game, không đổi tên file, không sửa `apps/web/src/ui/interface-art.ts`, `atlas-cells.json`, `interfaceArtManifest`. Nguồn: bộ art AI 19/10/2026 (v3) trong `art-moi/`, đã xoá sau khi nối.
+
+## Đã thay
+
+- 36 icon → `apps/web/public/assets/interface/<key>-v1.png` (bản 384² thu về **128²**, giữ alpha; bản gốc lưu `assets/source/interface/icons-v3/`).
+- Atlas runtime `icons-atlas-v1.png` 768² (lấy nguyên bản bộ mới) + 3 atlas nguồn `icons-v1.png`, `icons-extra-v1.png`, `portraits-v1.png` (đúng hình học cũ).
+- 6 chân dung 512² → **256²** runtime; `lobby-v1.png` 1920×1080 (runtime + nguồn).
+- 5 art môi trường: master → `assets/source/overhaul/`, bản ≤512 → `apps/web/public/assets/overhaul/`.
+- `packages/game-content/src/visual-assets.ts`: chỉ cập nhật `width/height` 4 prop theo PNG mới (house 512×383, tree 512×497, cherry 512×406, bamboo 358×512); `pivot`/`displayWidth` giữ nguyên.
+- Thêm `scripts/capture-art-refresh.mjs` (chụp + kiểm tra 9 màn) và `artifacts/art-refresh/` (ảnh + report).
+
+## Kiểm chứng
+
+- `pnpm validate:assets` PASS: 44 file interface (36 icon 128² + atlas 768² + 6 chân dung 256² + lobby 1920×1080) + 4 prop + ground khớp manifest.
+- Đối chiếu atlas 36 ô với icon lẻ: tương quan 0.69–0.94 (chỉ khác do resample) → đúng thứ tự, không lệch key.
+- `pnpm typecheck`, `pnpm lint`, `pnpm build` PASS (precache 70 entry/9666 KiB). `pnpm test` **310/310**. `pnpm test:e2e` **56/56**.
+- `node scripts/capture-art-refresh.mjs` PASS: 9 ảnh (lobby, world, inventory, tooltip, shop, workshop, storage, skills, character); **0 icon rơi về SVG dự phòng**, 0 ảnh lỗi, 0 pageerror; 44 file interface + 5 file overhaul trả 200; art môi trường ground/house/tree/cherry/bamboo đều được nạp; chân dung hội thoại = `portrait-merchant-v1.png`.
+- Icon mới: coverage 9–77%, viền gần như trong suốt, tỷ lệ pixel trắng đục ở mép ≤6% (chỉ `slash`/`ward` có lõi sáng chạm mép). Môi trường: 57–70% pixel trong suốt hoàn toàn, trắng đục ≤1.1%.
+
+## Quyết định và giới hạn
+
+- **Không chạy `scripts/build-interface-art.mjs`**: script cắt icon từ atlas nguồn và tô nền `#171410` từng ô → sẽ phá lớp trong suốt của bộ v3. Runtime icon dùng bản cắt sẵn trong `icons/` (thu 128²). Nếu cần dựng lại từ atlas phải bỏ bước tô nền.
+- Icon runtime là 128² (không phải 384² như file gốc) vì `interfaceArtManifest.iconSize=128` và `validate:assets` kiểm tra đúng khổ; bản 384² giữ trong `assets/source/`.
+- Prop mới có tỷ lệ khác nên cây/cherry/bamboo hiển thị cao hơn trước ~15–50% (giữ `displayWidth`); nếu thấy quá cao thì chỉnh `displayWidth` trong `visual-assets.ts`.
+- Art vẫn **review-required**; chưa đo thiết bị thật.
+- Flake có sẵn: các test E2E khổ 1366 (`overhaul`, `full-offline`, thỉnh thoảng `visual-overhaul` forge) fail khi chạy song song 2 worker, pass khi chạy riêng; đã tái hiện trên code base trước các thay đổi art.
+
+## Bước tiếp theo
+
+1. Chủ dự án duyệt trực quan 9 ảnh trong `artifacts/art-refresh/`, đối chiếu icon với `artifacts/art-refresh/preview-icon.png`.
+2. Nếu duyệt: đổi `quality`/`provenance` trong `interface-art.ts`, `visual-assets.ts` và mục này từ review-required sang production.
+3. Cân nhắc tinh chỉnh `displayWidth`/`pivot` của prop nếu tầm vóc cây/nhà chưa đúng ý.
+# Phiên sprite nhân vật 20 bộ (10 phái × 2 giới) — 20/10/2026
+
+Scope: tầng hiển thị/tài nguyên. Không sửa `packages/game-core`, protocol, save schema hay luật gameplay. Nhân vật người chơi dùng ảnh PNG theo (phái, giới); thiếu ảnh thì tự rơi về atlas procedural như cũ.
+
+## Đã triển khai
+
+- Tài nguyên: `apps/web/public/assets/actors/<phái>/<male|female>/sprites/{down,right,up}/<state>.png` — 20 bộ + bộ trung lập `neutral/male` = **21 bộ × 39 file = 819 PNG 256×256** (~29.3MB). Map thư mục gốc `vodang/thieulam/thienvuong/duongmon/ngudoc/ngami/cuiyan/caibang/thiennhan/conlon` → id phái thật trong `classDefinitions`. `preview-tong-hop.png` **không** vào runtime.
+- `packages/game-content/src/visuals.ts`: `actorSpriteManifest` (baseUrl `/assets/actors`, 13 state, 3 hướng, feetY 246, displayHeight 112, walk 6fps/run 8fps, `hurtHpRatio` 0.34, `fallback: "neutral/male"`, `sets` cho 10 phái × nam/nữ).
+- Tách phần dùng chung: `apps/web/src/game/animations/sprite-frames.ts` (hướng/state/URL/neo chân) — `monster-sprites.ts` giữ nguyên API cũ và gọi lại module này; `actor-sprites.ts` mới cho nhân vật (`actorSpriteOwner`, `actorSpriteFrame`, `actorSpriteWarmUrls`, `actorSpriteFiles`).
+- Cache dùng chung: `sprite-texture-cache.ts` (thay `monster-sprite-cache.ts`) — tải lazy từng khung, `warm()` nạp trước stand/walk×3 hướng theo bộ đang có trên bản đồ, `retain()` dọn texture khi đổi bản đồ, `dispose()` khi scene shutdown. WorldScene giữ 2 instance (`monsterSprites`, `actorSprites`).
+- `WorldScene.ts`: `EntityView.spriteSource` là union quái/nhân vật; `syncActorSprite` đổi texture/origin/flip mỗi frame cho cả hai; nhân vật sprite **không** bị tint phái đè lên art (procedural thì vẫn tint như cũ); label/bar/cast bar/status dời theo chiều cao khung; `appearanceFor()` gom logic nam/nữ (player cục bộ vs player khác).
+- `CharacterLobby.tsx`: phần "Xem ngoại hình" dùng sprite mới theo (phái, giới), xoay 4 hướng (trái = phải lật ngang), vẫn fallback procedural khi thiếu/chưa tải xong.
+- PWA: `globIgnores` thêm `assets/actors/**`, runtime cache `CacheFirst` cho `assets/(monsters|actors)/*.png` — precache vẫn 70 entry/~10.8 MiB.
+- Công cụ/kiểm tra: `apps/web/actor-inspector.html` (`?set=<phái>/<giới>`), `scripts/capture-actor-sprites.mjs`, `pnpm validate:assets` mở rộng, `tests/integration/actor-sprites.test.ts` (7 case).
+
+## Kiểm chứng đã chạy
+
+- `pnpm typecheck`, `pnpm lint` PASS. `pnpm test` **310/310** (20 file; thêm 7 case nhân vật). `pnpm validate:content` PASS.
+- `pnpm validate:assets` PASS: 21 bộ/819 file PNG đúng 256×256 + alpha; mọi phái trong manifest đều tồn tại trong `classDefinitions`; `artifacts/asset-audit.json` có `actorSprites` + `reviewRequiredActorSprites`.
+- `pnpm build` PASS (precache 70 entry/~10.8 MiB, sprite không vào precache). `pnpm test:e2e` **56/56**.
+- `node scripts/capture-actor-sprites.mjs` PASS: 21 ảnh inspector (0 ảnh thiếu), 4 ảnh in-game + 2 ảnh fallback, 18 request sprite trong game (stand/walk ×3 hướng cho cả `wudang/male` và `emei/female`), 0 pageerror, 0 file lỗi. A/B (chặn 404 `/assets/actors/` một lượt): pixel khác trong vùng nhân vật 435–540 mẫu, vùng đối chứng 0–3 → art PNG thật sự được vẽ. Ảnh: `artifacts/actor-sprites/`.
+- Kiểm tra lobby riêng: canvas `.lobby-actor` khớp **100%** pixel (so với chính file PNG vẽ cùng kích thước/vị trí) cho `wudang/male` và `emei/female` — tức preview đang vẽ ảnh mới, không phải hình thủ tục.
+- Ảnh preview gốc + brief lưu ở `artifacts/actor-sprites/preview/<phái>-<giới>.png` và `prompt-brief.md`; thư mục giải nén `nhan-vat-moi/` (44MB) đã xoá sau khi copy.
+- Flake có sẵn (không do phiên này): test E2E `overhaul` khổ 1366 fail khi chạy song song 2 worker, pass khi chạy riêng; tái hiện trên code base trước thay đổi.
+
+## Khác biệt so với brief và giới hạn còn lại
+
+- Brief ghi "4 hướng 0..3" và `CANONICAL_FRAMES`; repo thực tế dùng `Direction8` (8 hướng) và atlas procedural 8 state. Đã ánh xạ: 3 hướng vẽ sẵn + trái = phải lật; chéo gộp theo trục dọc (1/3 → down, 5/7 → up).
+- `run-*`, `loot`, `sit` chưa dùng (core không có state chạy/nhặt/ngồi); `revive` dùng ảnh `die`; `hurt` dùng khi HP ≤ 34%. Toàn bộ là ánh xạ hiển thị.
+- **NPC vẫn vẽ thủ tục** (không có bộ sprite NPC trong gói); actor production 8 hướng/11 state vẫn thuộc E1. Art vẫn **review-required**; chưa đo FPS/thiết bị thật.
+
+## Bước tiếp theo
+
+1. Người dùng đối chiếu `artifacts/actor-sprites/inspector-*.png` với `artifacts/actor-sprites/preview/*.png`.
+2. Nếu cần: bộ sprite NPC/thú cưỡi hoặc thêm hướng chéo thật (chỉ sửa `actorSpriteManifest.directions` + `spriteFacing`).
+3. Cân nhắc nén PNG (819+624 file ≈ 54MB trong `public/`) trước khi phát hành PWA.
+# Phiên sprite quái 16 bộ — 20/10/2026
+
+Scope: tầng hiển thị/tài nguyên. Không sửa `packages/game-core`, protocol, save schema hay luật gameplay. Sprite quái mới thay bản vẽ thủ tục **chỉ khi** có ảnh; thiếu ảnh thì tự rơi về atlas procedural như cũ.
+
+## Đã triển khai
+
+- Tài nguyên: `apps/web/public/assets/monsters/<id>/sprites/{down,right,up}/<state>.png` — 16 bộ × 39 file = **624 PNG 256×256** (~24.2MB). `preview-tong-hop.png` **không** copy vào runtime. Sau khi đối chiếu xong đã **xoá thư mục giải nén `quai-vat-moi/`** (36MB); ảnh preview lưu ở `artifacts/monster-sprites/preview/<id>.png`, brief gốc ở `artifacts/monster-sprites/prompt-brief.md`.
+- `packages/game-content/src/visuals.ts`: `monsterSpriteManifest` (baseUrl, 13 state, 3 hướng, feetY 246, displayHeight 112, bossScale 1.5, walk 6fps/run 8fps, `runSpeedThreshold` 2.2, `hurtHpRatio` 0.34, danh sách 16 id) + `weaponByMonster` cho 10 quái mới (chỉ dùng cho fallback).
+- `apps/web/src/game/animations/monster-sprites.ts`: ánh xạ thuần state/direction → file (0→right, 4→right lật ngang, 2/1/3→down, 6/5/7→up), idle→stand, walk→walk-1/2 (run-1/2 khi `speed ≥ 2.2`), attack/cast→đúng tên, hit→hit (hurt khi HP ≤ 34%), dead/revive→die, interact→use; `loot`/`sit` chưa có state trong core.
+- `monster-sprite-cache.ts`: tải lazy từng khung bằng `Image` + `textures.addImage`, giữ texture theo quái đang có trên bản đồ (`retain` khi `buildMap`), `dispose` khi scene shutdown.
+- `WorldScene.ts`: `EntityView` giữ atlas gốc + thông tin quái; `syncActorSprite` đổi texture/origin/flip mỗi frame, quái sprite **không** bị tint đè, label/bar/cast bar/status chấm dời theo chiều cao khung thật; boss (`brain === "boss"`) 168px, quái thường 112px.
+- PWA: `globIgnores: assets/monsters/**` + runtime cache `CacheFirst` — precache giữ 70 entry/11085 KiB, sprite chỉ cache khi dùng.
+- Công cụ/kiểm tra: `apps/web/monster-inspector.html` (`?monster=<id>`, 13×3 + cột trái lật, đếm ảnh thiếu), `scripts/capture-monster-sprites.mjs`, mở rộng `scripts/validate-assets.mjs`, `tests/integration/monster-sprites.test.ts` (8 case), alias `@kiem-hiep/*` trong `vitest.config.ts` để test được module tầng web.
+
+## Kiểm chứng đã chạy
+
+- `pnpm typecheck`, `pnpm lint` PASS. `pnpm test` **303/303** (19 file, thêm 8 case mới). `pnpm validate:content` PASS.
+- `pnpm validate:assets` PASS: 16 bộ/624 file PNG đúng 256×256 + alpha; `artifacts/asset-audit.json` có `monsterSprites` + `reviewRequiredMonsterSprites`.
+- `pnpm build` PASS (precache 70 entry/~10.8 MiB, sprite không nằm trong precache). `pnpm test:e2e` **56/56**.
+- `node scripts/capture-monster-sprites.mjs` PASS: 16 ảnh inspector (0 ảnh thiếu), 4 ảnh in-game + 1 ảnh fallback, 624 request sprite (0 lỗi 4xx/5xx), 30 request phát sinh trong game gồm `stand/walk-*/run-*/attack/cast/die`, 0 pageerror. A/B (chặn 404 sprite để buộc vẽ thủ tục): pixel khác trong vùng từng quái 598–1951 mẫu, vùng đối chứng 0–47 → art PNG thật sự được vẽ trong game. Ảnh + báo cáo ở `artifacts/monster-sprites/`.
+- Ghi chú flake có sẵn: 2 test E2E 1366 (`full-offline` khởi tạo/đánh quái, `overhaul` hành trình) fail khi chạy song song 2 worker; **tái hiện cả trên code base khi tạm bỏ thay đổi này**, và pass khi chạy riêng → không phải hồi quy của phiên này.
+
+## Khác biệt so với brief và giới hạn còn lại
+
+- Brief nói "giống bộ nhân vật đã nối trước đó": repo **chưa** có hệ sprite ảnh cho actor — actor/NPC vẫn vẽ thủ tục (`animations/atlas.ts`). Vì vậy lớp sprite ảnh mới chỉ áp cho quái, actor/NPC giữ nguyên.
+- Bộ ảnh chỉ có 3 hướng + lật ngang, trong khi `docs/visual/SPRITE_SPEC.md` yêu cầu 8 hướng/11 state cho actor production: chéo gộp theo trục dọc nên hướng 1/3 hiển thị `down`, 5/7 hiển thị `up`.
+- `loot`/`sit` chưa dùng; `revive` dùng ảnh `die`; `run-*` chỉ dùng cho quái `speed ≥ 2.2` (core không có state chạy). Toàn bộ là ánh xạ hiển thị, không thêm state vào simulation.
+- Art vẫn **review-required**; chưa đo FPS/thiết bị thật, chưa có sprite ảnh cho player/NPC, chưa thay prop/tile.
+
+## Bước tiếp theo
+
+1. Người dùng đối chiếu `artifacts/monster-sprites/inspector-*.png` với `artifacts/monster-sprites/preview/<id>.png` (ảnh `preview-tong-hop.png` đã lưu lại trước khi xoá thư mục giải nén), ghi nhận các khuyết điểm ở mục 6 của brief (`artifacts/monster-sprites/prompt-brief.md`); không vẽ lại.
+2. Nếu cần khớp spec 8 hướng: bổ sung hướng chéo thật hoặc chấp nhận gộp trục dọc; khi đó chỉ sửa `monsterSpriteManifest.directions` + `monsterFacing`.
+3. Sprite ảnh cho player/NPC và atlas actor production vẫn thuộc E1.
+# Phiên visual overhaul — 19/10/2026
 
 Scope: UI/UX, art pipeline, renderer/presentation. Không sửa `packages/game-core`, content definitions, protocol, storage hay save schema. Bản nhận không có `.git`; không thể git status/worktree/diff, không reset/clean. Source UI trước sửa giữ ở `artifacts/visual-before/source/`. Nội dung handoff trước được giữ nguyên phía dưới.
 

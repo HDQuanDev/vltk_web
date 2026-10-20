@@ -15,8 +15,24 @@ import {
   resourceNodes,
   propAssets,
   groundTextureAsset,
+  actorSpriteManifest,
 } from "@kiem-hiep/game-content";
 import { worldToScreen, screenToWorld, distance } from "@kiem-hiep/game-core";
+import {
+  hasMonsterSprites,
+  isBossMonster,
+  monsterSpriteFrame,
+  monsterSpriteHeight,
+  monsterSpriteOriginY,
+} from "../animations/monster-sprites";
+import {
+  actorSpriteFrame,
+  actorSpriteHeight,
+  actorSpriteOriginY,
+  actorSpriteOwner,
+  actorSpriteWarmUrls,
+} from "../animations/actor-sprites";
+import { SpriteTextureCache } from "../animations/sprite-texture-cache";
 import { actorTexture } from "../animations/atlas";
 import { animationFrame } from "../animations/frames";
 import { EnvironmentRenderer } from "../renderers/EnvironmentRenderer";
@@ -24,6 +40,9 @@ import { ChunkWorldRenderer } from "../renderers/ChunkWorldRenderer";
 import { CameraController } from "../camera/CameraController";
 import { createPropTextures } from "../renderers/art";
 import { GroundLootRenderer } from "../renderers/GroundLootRenderer";
+/** Neo chân (246/256) và ngưỡng HP dùng chung cho mọi bộ ảnh actor. */
+const spriteOriginY = actorSpriteOriginY;
+const hurtHpRatio = actorSpriteManifest.hurtHpRatio;
 export interface WorldCallbacks {
   onReady: () => void;
   onError: (message: string) => void;
@@ -39,12 +58,28 @@ export interface WorldCallbacks {
     activeEffects?: number;
   }) => void;
 }
+/** Nguồn ảnh sprite của một actor: quái hoặc nhân vật theo (phái, giới). */
+type SpriteSource =
+  | { kind: "monster"; definitionId: string; height: number }
+  | {
+      kind: "actor";
+      sectId: string;
+      appearance: string;
+      owner: string;
+      height: number;
+    };
 interface EntityView {
   container: Phaser.GameObjects.Container;
   sprite: Phaser.GameObjects.Image;
   bar: Phaser.GameObjects.Graphics;
   ring: Phaser.GameObjects.Ellipse;
   label: Phaser.GameObjects.Text;
+  /** Bản vẽ thủ tục đang dùng, để quay lại khi thiếu ảnh sprite. */
+  atlas: { key: string; width: number; height: number };
+  /** Có bộ ảnh: texture đổi theo state/hướng thay cho atlas. */
+  spriteSource: SpriteSource | null;
+  labelY: number;
+  barY: number;
 }
 export class WorldScene extends Phaser.Scene {
   private environment?: EnvironmentRenderer;
@@ -62,6 +97,8 @@ export class WorldScene extends Phaser.Scene {
   private keys?: Record<string, Phaser.Input.Keyboard.Key>;
   private lastMove = 0;
   private clickMarker?: Phaser.GameObjects.Arc;
+  private monsterSprites?: SpriteTextureCache;
+  private actorSprites?: SpriteTextureCache;
   private isBlocked: () => boolean;
   private callbacks: WorldCallbacks;
   constructor(
@@ -97,6 +134,8 @@ export class WorldScene extends Phaser.Scene {
     this.environment = new EnvironmentRenderer(this);
     this.worldRenderer = new ChunkWorldRenderer(this);
     this.vfx = new CombatVFXRenderer(this);
+    this.monsterSprites = new SpriteTextureCache(this);
+    this.actorSprites = new SpriteTextureCache(this);
     this.lootRenderer = new GroundLootRenderer(this, (lootId) => {
       if (!this.isBlocked())
         this.session.sendCommand({ type: "pickup", lootId });
@@ -236,6 +275,8 @@ export class WorldScene extends Phaser.Scene {
       this.worldRenderer?.destroy();
       this.vfx?.destroy();
       this.lootRenderer?.destroy();
+      this.monsterSprites?.dispose();
+      this.actorSprites?.dispose();
     };
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, cleanup);
     this.events.once(Phaser.Scenes.Events.DESTROY, cleanup);
@@ -266,6 +307,24 @@ export class WorldScene extends Phaser.Scene {
     for (const key of this.textures.getTextureKeys())
       if (key.startsWith("actor:") && !required.has(key))
         this.textures.remove(key);
+    this.monsterSprites?.retain(
+      new Set(
+        Object.values(this.snapshot.entities)
+          .filter((e) => e.kind === "monster" && e.mapId === this.currentMap)
+          .map((e) => e.definitionId),
+      ),
+    );
+    // Nhân vật: giữ texture theo bộ (phái, giới) có trên bản đồ và nạp trước
+    // stand/walk để không nháy hình thủ tục khi vừa vào bản đồ.
+    const actorOwners = new Set<string>();
+    for (const e of Object.values(this.snapshot.entities)) {
+      if (e.kind !== "player" || e.mapId !== this.currentMap) continue;
+      const set = actorSpriteOwner(e.definitionId, this.appearanceFor(e));
+      if (!set) continue;
+      actorOwners.add(set.owner);
+      this.actorSprites?.warm(set.owner, actorSpriteWarmUrls(set.owner));
+    }
+    this.actorSprites?.retain(actorOwners);
     this.worldRenderer?.changeMap(this.currentMap);
     this.mapObjects = [];
     this.cameraController?.reset(this.snapshot);
@@ -344,34 +403,33 @@ export class WorldScene extends Phaser.Scene {
       this.mapObjects.push(circle, label);
     }
   }
+  /** Ngoại hình actor: người chơi cục bộ lấy từ snapshot, player khác từ actors. */
+  private appearanceFor(e: CombatEntity): string {
+    if (e.id === this.snapshot.playerId) return this.snapshot.appearance;
+    return this.snapshot.actors[e.id]?.appearance ?? "male";
+  }
   private weaponFor(e: CombatEntity) {
     if (e.kind !== "player")
       return actorVisualManifest.weaponByMonster[e.definitionId] ?? "sword";
-    const appearance =
-      e.id === this.snapshot.playerId
-        ? this.snapshot.appearance
-        : this.snapshot.actors[e.id]?.appearance;
-    return `${appearance === "female" ? "female:" : ""}${actorVisualManifest.weaponByClass[e.definitionId] ?? "sword"}`;
+    return `${this.appearanceFor(e) === "female" ? "female:" : ""}${actorVisualManifest.weaponByClass[e.definitionId] ?? "sword"}`;
   }
   private createView(e: CombatEntity) {
     const container = this.add.container(0, 0);
-    const shadow = this.add.ellipse(
-      0,
-      1,
-      e.definitionId === "boss" ? 60 : 31,
-      12,
-      0x112b1e,
-      0.4,
-    );
+    const boss = e.kind === "monster" && isBossMonster(e.definitionId);
+    const shadow = this.add.ellipse(0, 1, boss ? 60 : 31, 12, 0x112b1e, 0.4);
     const ring = this.add
       .ellipse(0, 0, 42, 20, 0xd5b66e, 0)
       .setStrokeStyle(1.5, e.kind === "player" ? 0xd5c48b : 0xd9785c, 0.7);
-    const key = actorTexture(this, this.weaponFor(e));
+    const atlas = {
+      key: actorTexture(this, this.weaponFor(e)),
+      width: boss ? 88 : 64,
+      height: boss ? 132 : 96,
+    };
     const sprite = this.add
       .image(
         0,
         0,
-        key,
+        atlas.key,
         animationFrame(
           e.state,
           e.direction,
@@ -380,32 +438,67 @@ export class WorldScene extends Phaser.Scene {
         ),
       )
       .setOrigin(0.5, 88 / 96)
-      .setDisplaySize(
-        e.definitionId === "boss" ? 88 : 64,
-        e.definitionId === "boss" ? 132 : 96,
-      );
+      .setDisplaySize(atlas.width, atlas.height);
+    // Có bộ ảnh (quái hoặc nhân vật): khung 256px neo chân, boss scale lớn hơn
+    // cho đúng tầm vóc; nhân vật dùng bộ theo (phái, giới).
+    const monsterSprite =
+      e.kind === "monster" && hasMonsterSprites(e.definitionId);
+    const actorSet =
+      e.kind === "player"
+        ? actorSpriteOwner(e.definitionId, this.appearanceFor(e))
+        : null;
+    const spriteSource: SpriteSource | null = monsterSprite
+      ? {
+          kind: "monster",
+          definitionId: e.definitionId,
+          height: monsterSpriteHeight(e.definitionId),
+        }
+      : actorSet
+        ? {
+            kind: "actor",
+            sectId: e.definitionId,
+            appearance: this.appearanceFor(e),
+            owner: actorSet.owner,
+            height: actorSpriteHeight,
+          }
+        : null;
+    const originY =
+      spriteSource?.kind === "monster"
+        ? monsterSpriteOriginY
+        : spriteSource?.kind === "actor"
+          ? actorSpriteOriginY
+          : 88 / 96;
+    const height = spriteSource ? spriteSource.height : atlas.height;
+    const labelY = spriteSource
+      ? -Math.round(height * originY) - 12
+      : boss
+        ? -132
+        : -96;
+    const barY = labelY + (boss ? 13 : 10);
     if (e.kind === "player") {
-      const school = getSect(e.definitionId),
-        appearance =
-          e.id === this.snapshot.playerId
-            ? this.snapshot.appearance
-            : this.snapshot.actors[e.id]?.appearance;
-      const shade = Phaser.Display.Color.HexStringToColor(
-        appearance === "female" ? "#dbc5dc" : school.color,
-      );
-      const tint = Phaser.Display.Color.Interpolate.ColorWithColor(
-        shade,
-        new Phaser.Display.Color(255, 255, 255),
-        100,
-        68,
-      );
-      sprite.setTint(Phaser.Display.Color.GetColor(tint.r, tint.g, tint.b));
-    } else if (e.definitionId === "bandit" || e.definitionId === "archer")
+      if (spriteSource) {
+        // Ảnh sprite đã có màu riêng theo phái: không tint đè lên art.
+        sprite.clearTint();
+      } else {
+        const school = getSect(e.definitionId);
+        const shade = Phaser.Display.Color.HexStringToColor(
+          this.appearanceFor(e) === "female" ? "#dbc5dc" : school.color,
+        );
+        const tint = Phaser.Display.Color.Interpolate.ColorWithColor(
+          shade,
+          new Phaser.Display.Color(255, 255, 255),
+          100,
+          68,
+        );
+        sprite.setTint(Phaser.Display.Color.GetColor(tint.r, tint.g, tint.b));
+      }
+    } else if (spriteSource) sprite.clearTint();
+    else if (e.definitionId === "bandit" || e.definitionId === "archer")
       sprite.setTint(0xd3b89a);
     else if (e.definitionId === "assassin") sprite.setTint(0xc8aacd);
     else if (e.definitionId === "boss") sprite.setTint(0xe5ba81);
     const label = this.add
-      .text(0, -89, e.name, {
+      .text(0, labelY, e.name, {
         fontFamily: "Arial",
         fontSize: "12px",
         color:
@@ -416,9 +509,76 @@ export class WorldScene extends Phaser.Scene {
       .setOrigin(0.5);
     const bar = this.add.graphics();
     container.add([shadow, ring, sprite, label, bar]);
-    const view = { container, sprite, bar, ring, label };
+    const view: EntityView = {
+      container,
+      sprite,
+      bar,
+      ring,
+      label,
+      atlas,
+      spriteSource,
+      labelY,
+      barY,
+    };
     this.views.set(e.id, view);
     return view;
+  }
+  /**
+   * Chọn texture cho actor tại tick hiện tại: quái và nhân vật có bộ ảnh dùng PNG
+   * 256px theo state/hướng (trái = phải lật ngang). Ảnh chưa tải xong hoặc thiếu
+   * file thì giữ bản vẽ thủ tục của atlas — không lỗi, không để ô trống.
+   */
+  private syncActorSprite(e: CombatEntity, v: EntityView) {
+    const elapsed = this.snapshot.tick - e.stateStartedAt;
+    const source = v.spriteSource;
+    if (source) {
+      const lowHp = e.maxHp > 0 && e.hp / e.maxHp <= hurtHpRatio;
+      const frame =
+        source.kind === "monster"
+          ? monsterSpriteFrame(
+              source.definitionId,
+              e.state,
+              e.direction,
+              elapsed,
+              { lowHp },
+            )
+          : actorSpriteFrame(
+              source.sectId,
+              source.appearance,
+              e.state,
+              e.direction,
+              elapsed,
+              { lowHp },
+            );
+      const owner =
+        source.kind === "monster" ? source.definitionId : source.owner;
+      const cache =
+        source.kind === "monster" ? this.monsterSprites : this.actorSprites;
+      const key = frame ? (cache?.key(owner, frame.url) ?? null) : null;
+      if (frame && key) {
+        if (v.sprite.texture.key !== key) v.sprite.setTexture(key);
+        v.sprite
+          .setOrigin(0.5, spriteOriginY)
+          .setFlipX(frame.flipX)
+          .setDisplaySize(source.height, source.height);
+        return;
+      }
+    }
+    if (v.sprite.texture.key !== v.atlas.key) {
+      v.sprite
+        .setTexture(v.atlas.key)
+        .setOrigin(0.5, 88 / 96)
+        .setFlipX(false)
+        .setDisplaySize(v.atlas.width, v.atlas.height);
+    }
+    v.sprite.setFrame(
+      animationFrame(
+        e.state,
+        e.direction,
+        this.snapshot.tick,
+        e.stateStartedAt,
+      ),
+    );
   }
   update(time: number, delta: number) {
     if (!this.snapshot) return;
@@ -459,20 +619,13 @@ export class WorldScene extends Phaser.Scene {
         v.container.y = Phaser.Math.Linear(v.container.y, s.y, alpha);
       }
       v.container.setDepth(v.container.y);
-      v.sprite.setFrame(
-        animationFrame(
-          e.state,
-          e.direction,
-          this.snapshot.tick,
-          e.stateStartedAt,
-        ),
-      );
+      this.syncActorSprite(e, v);
       v.container.setAlpha(e.hp <= 0 ? 0.55 : 1);
       v.container.setVisible(true);
-      v.label.setY(e.definitionId === "boss" ? -132 : -96);
+      v.label.setY(v.labelY);
       v.bar.clear();
       if (e.hp > 0) {
-        const y = e.definitionId === "boss" ? -119 : -86;
+        const y = v.barY;
         v.bar.fillStyle(0x15231c, 0.9).fillRoundedRect(-23, y, 46, 4, 1);
         v.bar
           .fillStyle(e.kind === "player" ? 0x9fae6f : 0xb75642)
@@ -481,8 +634,10 @@ export class WorldScene extends Phaser.Scene {
       if (e.casting) {
         const total = Math.max(1, e.casting.resolveAt - e.stateStartedAt),
           progress = 1 - (e.casting.resolveAt - this.snapshot.tick) / total;
-        v.bar.fillStyle(0x122923, 0.9).fillRect(-22, -78, 44, 3);
-        v.bar.fillStyle(0xc4d4b1, 1).fillRect(-22, -78, 44 * progress, 3);
+        v.bar.fillStyle(0x122923, 0.9).fillRect(-22, v.barY + 8, 44, 3);
+        v.bar
+          .fillStyle(0xc4d4b1, 1)
+          .fillRect(-22, v.barY + 8, 44 * progress, 3);
       }
       if (e.statuses.length) {
         let ix = 0;
@@ -498,7 +653,7 @@ export class WorldScene extends Phaser.Scene {
                     : 0x9ac5cf,
               0.9,
             )
-            .fillCircle(-12 + ix++ * 5, -67, 1.5);
+            .fillCircle(-12 + ix++ * 5, v.barY + 19, 1.5);
         }
       }
       v.ring.setVisible(e.kind === "player" || p.targetId === e.id);

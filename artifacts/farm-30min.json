@@ -52,10 +52,10 @@
     }
   ],
   "tickMs": {
-    "p50": 0.06849999999940337,
-    "p95": 0.15204200000061974,
-    "p99": 0.2725829999999405,
-    "max": 29.517375000000357
+    "p50": 0.09312500000032742,
+    "p95": 0.16462500000034197,
+    "p99": 0.3942910000005213,
+    "max": 17.1120420000002
   },
   "grants": false,
   "note": "Accelerated shared-core journey from character creation through three starter quests and real portals into riverlands. Commands allocate earned attributes, equip earned gear, heal with learned MP/cooldown, AUTO with radius12 and pickup. Does not measure rendering or device FPS. Timing includes test runner overhead/GC and is not a deterministic assertion."

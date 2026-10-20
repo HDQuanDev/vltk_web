@@ -1,0 +1,267 @@
+{
+  "base": "http://localhost:5241",
+  "viewport": [
+    1366,
+    768
+  ],
+  "shots": [
+    "01-lobby",
+    "02-world",
+    "03-inventory",
+    "04-item-tooltip",
+    "05-shop",
+    "06-workshop",
+    "07-storage",
+    "08-skills",
+    "09-character"
+  ],
+  "iconStats": {
+    "inventory": {
+      "painted": 42,
+      "svgFallback": 0,
+      "paintedSrcMissing": 0,
+      "broken": 0
+    },
+    "shop": {
+      "painted": 16,
+      "svgFallback": 0,
+      "paintedSrcMissing": 0,
+      "broken": 0
+    },
+    "shopPortrait": "/assets/interface/portrait-merchant-v1.png",
+    "workshop": {
+      "painted": 48,
+      "svgFallback": 0,
+      "paintedSrcMissing": 0,
+      "broken": 0
+    },
+    "storage": {
+      "painted": 42,
+      "svgFallback": 0,
+      "paintedSrcMissing": 0,
+      "broken": 0
+    },
+    "skills": {
+      "painted": 22,
+      "svgFallback": 0,
+      "paintedSrcMissing": 0,
+      "broken": 0
+    },
+    "character": {
+      "painted": 15,
+      "svgFallback": 0,
+      "paintedSrcMissing": 0,
+      "broken": 0
+    }
+  },
+  "interfaceFiles": [
+    "amber-gem-v1.png",
+    "bamboo-hat-v1.png",
+    "boots-v1.png",
+    "crown-v1.png",
+    "daggers-v1.png",
+    "dragon-sword-v1.png",
+    "elixir-v1.png",
+    "fan-v1.png",
+    "gem-v1.png",
+    "helmet-v1.png",
+    "herb-v1.png",
+    "hide-v1.png",
+    "icons-atlas-v1.png",
+    "jade-gem-v1.png",
+    "jade-ore-v1.png",
+    "lightning-v1.png",
+    "lobby-v1.png",
+    "lotus-v1.png",
+    "manual-v1.png",
+    "ore-v1.png",
+    "pendant-v1.png",
+    "portrait-elder-v1.png",
+    "portrait-female-v1.png",
+    "portrait-male-v1.png",
+    "portrait-merchant-v1.png",
+    "portrait-smith-v1.png",
+    "portrait-teacher-v1.png",
+    "potion-blue-v1.png",
+    "potion-red-v1.png",
+    "ring-v1.png",
+    "robe-v1.png",
+    "saber-v1.png",
+    "scale-armor-v1.png",
+    "shield-v1.png",
+    "silk-v1.png",
+    "slash-v1.png",
+    "spear-v1.png",
+    "staff-v1.png",
+    "storm-iron-v1.png",
+    "sword-v1.png",
+    "talisman-v1.png",
+    "ward-v1.png",
+    "wind-v1.png",
+    "wood-v1.png"
+  ],
+  "environmentFiles": [
+    "bamboo-v1.png",
+    "cherry-v1.png",
+    "ground-v1.png",
+    "house-v1.png",
+    "tree-v1.png"
+  ],
+  "interfaceAssetsLoaded": [
+    [
+      "/assets/interface/portrait-male-v1.png",
+      200
+    ],
+    [
+      "/assets/interface/lobby-v1.png",
+      200
+    ],
+    [
+      "/assets/interface/lightning-v1.png",
+      200
+    ],
+    [
+      "/assets/interface/wind-v1.png",
+      200
+    ],
+    [
+      "/assets/interface/lotus-v1.png",
+      200
+    ],
+    [
+      "/assets/interface/shield-v1.png",
+      200
+    ],
+    [
+      "/assets/interface/slash-v1.png",
+      200
+    ],
+    [
+      "/assets/interface/potion-red-v1.png",
+      200
+    ],
+    [
+      "/assets/interface/potion-blue-v1.png",
+      200
+    ],
+    [
+      "/assets/interface/icons-atlas-v1.png",
+      200
+    ],
+    [
+      "/assets/interface/robe-v1.png",
+      200
+    ],
+    [
+      "/assets/interface/ore-v1.png",
+      200
+    ],
+    [
+      "/assets/interface/wood-v1.png",
+      200
+    ],
+    [
+      "/assets/interface/herb-v1.png",
+      200
+    ],
+    [
+      "/assets/interface/jade-ore-v1.png",
+      200
+    ],
+    [
+      "/assets/interface/storm-iron-v1.png",
+      200
+    ],
+    [
+      "/assets/interface/hide-v1.png",
+      200
+    ],
+    [
+      "/assets/interface/silk-v1.png",
+      200
+    ],
+    [
+      "/assets/interface/jade-gem-v1.png",
+      200
+    ],
+    [
+      "/assets/interface/amber-gem-v1.png",
+      200
+    ],
+    [
+      "/assets/interface/ward-v1.png",
+      200
+    ],
+    [
+      "/assets/interface/elixir-v1.png",
+      200
+    ],
+    [
+      "/assets/interface/sword-v1.png",
+      200
+    ],
+    [
+      "/assets/interface/boots-v1.png",
+      200
+    ],
+    [
+      "/assets/interface/fan-v1.png",
+      200
+    ],
+    [
+      "/assets/interface/bamboo-hat-v1.png",
+      200
+    ],
+    [
+      "/assets/interface/crown-v1.png",
+      200
+    ],
+    [
+      "/assets/interface/dragon-sword-v1.png",
+      200
+    ],
+    [
+      "/assets/interface/talisman-v1.png",
+      200
+    ],
+    [
+      "/assets/interface/scale-armor-v1.png",
+      200
+    ],
+    [
+      "/assets/interface/pendant-v1.png",
+      200
+    ],
+    [
+      "/assets/interface/ring-v1.png",
+      200
+    ],
+    [
+      "/assets/interface/portrait-merchant-v1.png",
+      200
+    ]
+  ],
+  "environmentAssetsLoaded": [
+    [
+      "/assets/overhaul/ground-v1.png",
+      200
+    ],
+    [
+      "/assets/overhaul/tree-v1.png",
+      200
+    ],
+    [
+      "/assets/overhaul/house-v1.png",
+      200
+    ],
+    [
+      "/assets/overhaul/bamboo-v1.png",
+      200
+    ],
+    [
+      "/assets/overhaul/cherry-v1.png",
+      200
+    ]
+  ],
+  "errors": []
+}

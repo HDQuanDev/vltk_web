@@ -36,5 +36,153 @@ export const actorVisualManifest = {
     boss: "spear",
     wolf: "wolf",
     viper: "viper",
+    "mist-wolf": "wolf",
+    "stone-ape": "staff",
+    "cloud-archer": "bow",
+    "shadow-blade": "sword",
+    "venom-moth": "dagger",
+    "thunder-crane": "staff",
+    "bandit-lord": "sword",
+    "jade-serpent": "viper",
+    "storm-drummer": "staff",
+    "cloud-beast": "wolf",
   } as Record<string, string>,
+};
+/**
+ * Đăng ký bộ sprite quái dạng ảnh: `<baseUrl>/<monsterId>/sprites/<hướng>/<state>.png`.
+ * Mỗi file là PNG 256×256 nền trong suốt, nhân vật neo giữa–đáy (`feetY`). Ba hướng
+ * vẽ sẵn (down/right/up); hướng trái dùng ảnh `right` lật ngang. Đây chỉ là dữ liệu
+ * tài nguyên: ánh xạ state/direction, scale hiển thị và fallback vẽ thủ tục nằm ở
+ * client (`apps/web/src/game/animations/monster-sprites.ts`), gameplay không đổi.
+ */
+export const monsterSpriteManifest = {
+  version: 1,
+  quality: "requires-production-art-review",
+  baseUrl: "/assets/monsters",
+  frameWidth: 256,
+  frameHeight: 256,
+  /** Đường chân trong khung 256px (neo giữa–đáy). */
+  feetY: 246,
+  directions: ["down", "right", "up"] as const,
+  states: [
+    "stand",
+    "walk-1",
+    "walk-2",
+    "run-1",
+    "run-2",
+    "cast",
+    "attack",
+    "hit",
+    "hurt",
+    "die",
+    "use",
+    "loot",
+    "sit",
+  ] as const,
+  /** Trạng thái runtime có dùng; `loot`/`sit` chưa có state tương ứng trong core. */
+  runtimeStates: [
+    "stand",
+    "walk-1",
+    "walk-2",
+    "run-1",
+    "run-2",
+    "cast",
+    "attack",
+    "hit",
+    "hurt",
+    "die",
+    "use",
+  ] as const,
+  /** Chiều cao khung hiển thị của quái thường (px màn hình); boss nhân `bossScale`. */
+  displayHeight: 112,
+  bossScale: 1.5,
+  /** Nhịp lặp khung walk/run. */
+  walkFps: 6,
+  runFps: 8,
+  /** Tốc độ world unit/giây từ mức này dùng `run-*` thay `walk-*` (chỉ hiển thị). */
+  runSpeedThreshold: 2.2,
+  /** Tỉ lệ HP từ mức này trở xuống dùng `hurt` thay `hit` (chỉ hiển thị). */
+  hurtHpRatio: 0.34,
+  monsters: [
+    "bandit",
+    "wolf",
+    "boss",
+    "archer",
+    "assassin",
+    "viper",
+    "mist-wolf",
+    "stone-ape",
+    "cloud-archer",
+    "shadow-blade",
+    "venom-moth",
+    "thunder-crane",
+    "bandit-lord",
+    "jade-serpent",
+    "storm-drummer",
+    "cloud-beast",
+  ] as const,
+};
+/**
+ * Đăng ký bộ sprite ảnh cho nhân vật người chơi: `<baseUrl>/<phái>/<giới>/sprites/...`
+ * = 20 bộ (10 phái × nam/nữ) + 1 bộ trung lập `neutral/male` làm dự phòng.
+ * Cùng quy ước khung với sprite quái: PNG 256×256, neo giữa–đáy `feetY`, 13 state,
+ * 3 hướng vẽ sẵn (trái = `right` lật ngang).
+ */
+export const actorSpriteManifest = {
+  version: 1,
+  quality: "requires-production-art-review",
+  baseUrl: "/assets/actors",
+  frameWidth: 256,
+  frameHeight: 256,
+  feetY: 246,
+  directions: ["down", "right", "up"] as const,
+  states: [
+    "stand",
+    "walk-1",
+    "walk-2",
+    "run-1",
+    "run-2",
+    "cast",
+    "attack",
+    "hit",
+    "hurt",
+    "die",
+    "use",
+    "loot",
+    "sit",
+  ] as const,
+  runtimeStates: [
+    "stand",
+    "walk-1",
+    "walk-2",
+    "run-1",
+    "run-2",
+    "cast",
+    "attack",
+    "hit",
+    "hurt",
+    "die",
+    "use",
+  ] as const,
+  /** Chiều cao khung hiển thị (px màn hình) của nhân vật. */
+  displayHeight: 112,
+  walkFps: 6,
+  runFps: 8,
+  /** Tỉ lệ HP từ mức này trở xuống dùng `hurt` thay `hit` (chỉ hiển thị). */
+  hurtHpRatio: 0.34,
+  /** Bộ dùng khi thiếu (phái, giới); thiếu cả bộ này thì quay về vẽ thủ tục. */
+  fallback: "neutral/male",
+  sets: {
+    wudang: { male: "wudang/male", female: "wudang/female" },
+    shaolin: { male: "shaolin/male", female: "shaolin/female" },
+    tianwang: { male: "tianwang/male", female: "tianwang/female" },
+    tangmen: { male: "tangmen/male", female: "tangmen/female" },
+    wudu: { male: "wudu/male", female: "wudu/female" },
+    emei: { male: "emei/male", female: "emei/female" },
+    cuiyan: { male: "cuiyan/male", female: "cuiyan/female" },
+    beggar: { male: "beggar/male", female: "beggar/female" },
+    tianren: { male: "tianren/male", female: "tianren/female" },
+    kunlun: { male: "kunlun/male", female: "kunlun/female" },
+    neutral: { male: "neutral/male" },
+  } as Record<string, Partial<Record<"male" | "female", string>>>,
 };

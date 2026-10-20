@@ -43,6 +43,19 @@ export default defineConfig({
         dontCacheBustURLsMatching: /-[\w-]{8,}\.(?:js|css)$/,
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
         globPatterns: ["**/*.{js,css,html,svg,woff2,png,wav}"],
+        // Sprite quái + nhân vật (~24MB + ~30MB) tải lazy theo khung đang hiển
+        // thị: cache lúc dùng thay vì nhét hết vào precache của bước install.
+        globIgnores: ["assets/monsters/**", "assets/actors/**"],
+        runtimeCaching: [
+          {
+            urlPattern: /\/assets\/(monsters|actors)\/.*\.png$/,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "actor-sprites",
+              expiration: { maxEntries: 1600, purgeOnQuotaError: true },
+            },
+          },
+        ],
         navigateFallback: "index.html",
       },
     }),

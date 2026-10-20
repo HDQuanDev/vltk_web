@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "simulationHours": 4,
   "ticks": 288000,
-  "elapsedMs": 24498,
+  "elapsedMs": 20853,
   "maxEntities": 21,
   "maxProjectiles": 1,
   "checkpoints": [

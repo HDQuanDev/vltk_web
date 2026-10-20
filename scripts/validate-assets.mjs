@@ -6,8 +6,15 @@ const server = await createServer({
   appType: "custom",
 });
 try {
-  const { propAssets, groundTextureAsset, actorVisualManifest } =
-    await server.ssrLoadModule("/packages/game-content/src/index.ts");
+  const {
+    propAssets,
+    groundTextureAsset,
+    actorVisualManifest,
+    monsterSpriteManifest,
+    monsters,
+    actorSpriteManifest,
+    classDefinitions,
+  } = await server.ssrLoadModule("/packages/game-content/src/index.ts");
   const rows = [];
   for (const a of propAssets) {
     const b = await readFile("apps/web/public" + a.url);
@@ -89,6 +96,69 @@ try {
     )
       throw new Error("Invalid presentation audio: " + row.name);
   }
+  const knownMonsters = new Set(monsters.map((m) => m.id));
+  const monsterSets = [];
+  const monsterFilesPerSet =
+    monsterSpriteManifest.directions.length *
+    monsterSpriteManifest.states.length;
+  let monsterFiles = 0,
+    monsterBytes = 0;
+  for (const id of monsterSpriteManifest.monsters) {
+    if (!knownMonsters.has(id))
+      throw new Error("Bộ sprite quái không có monster def: " + id);
+    let bytes = 0;
+    for (const facing of monsterSpriteManifest.directions)
+      for (const state of monsterSpriteManifest.states) {
+        const b = await readFile(
+          `apps/web/public${monsterSpriteManifest.baseUrl}/${id}/sprites/${facing}/${state}.png`,
+        );
+        if (
+          b.subarray(1, 4).toString() !== "PNG" ||
+          b.readUInt32BE(16) !== monsterSpriteManifest.frameWidth ||
+          b.readUInt32BE(20) !== monsterSpriteManifest.frameHeight ||
+          b[25] !== 6
+        )
+          throw new Error(
+            `Sprite quái sai metadata/alpha: ${id}/${facing}/${state}`,
+          );
+        bytes += b.length;
+      }
+    monsterFiles += monsterFilesPerSet;
+    monsterBytes += bytes;
+    monsterSets.push({ id, files: monsterFilesPerSet, bytes });
+  }
+  const knownSects = new Set(classDefinitions.map((s) => s.id));
+  const actorSets = [];
+  const actorFilesPerSet =
+    actorSpriteManifest.directions.length * actorSpriteManifest.states.length;
+  let actorFilesCount = 0,
+    actorBytes = 0;
+  for (const [sectId, genders] of Object.entries(actorSpriteManifest.sets)) {
+    if (sectId !== "neutral" && !knownSects.has(sectId))
+      throw new Error("Bộ sprite nhân vật không có phái: " + sectId);
+    for (const owner of Object.values(genders)) {
+      let bytes = 0;
+      for (const facing of actorSpriteManifest.directions)
+        for (const state of actorSpriteManifest.states) {
+          const b = await readFile(
+            `apps/web/public${actorSpriteManifest.baseUrl}/${owner}/sprites/${facing}/${state}.png`,
+          );
+          if (
+            b.subarray(1, 4).toString() !== "PNG" ||
+            b.readUInt32BE(16) !== actorSpriteManifest.frameWidth ||
+            b.readUInt32BE(20) !== actorSpriteManifest.frameHeight ||
+            b[25] !== 6
+          )
+            throw new Error(
+              `Sprite nhân vật sai metadata/alpha: ${owner}/${facing}/${state}`,
+            );
+          bytes += b.length;
+        }
+      actorFilesCount += actorFilesPerSet;
+      actorBytes += bytes;
+      actorSets.push({ owner, files: actorFilesPerSet, bytes });
+    }
+  }
   const report = {
     interface: {
       assets: interfaceRows,
@@ -108,10 +178,45 @@ try {
     reviewRequired:
       rows.filter((r) => r.quality === "review-required").length +
       1 +
-      interfaceRows.length,
+      interfaceRows.length +
+      monsterFiles +
+      actorFilesCount,
     reviewRequiredInterface: interfaceRows.length,
     reviewRequiredProps: 4,
     reviewRequiredGround: 1,
+    monsterSprites: {
+      sets: monsterSets.length,
+      files: monsterFiles,
+      bytes: monsterBytes,
+      directions: monsterSpriteManifest.directions,
+      states: monsterSpriteManifest.states.length,
+      runtimeStates: monsterSpriteManifest.runtimeStates.length,
+      frame: [
+        monsterSpriteManifest.frameWidth,
+        monsterSpriteManifest.frameHeight,
+      ],
+      feetY: monsterSpriteManifest.feetY,
+      quality: monsterSpriteManifest.quality,
+      previews:
+        "preview-tong-hop.png chỉ để người kiểm tra, không copy vào runtime",
+    },
+    reviewRequiredMonsterSprites: monsterFiles,
+    actorSprites: {
+      sets: actorSets.length,
+      files: actorFilesCount,
+      bytes: actorBytes,
+      directions: actorSpriteManifest.directions,
+      states: actorSpriteManifest.states.length,
+      runtimeStates: actorSpriteManifest.runtimeStates.length,
+      frame: [actorSpriteManifest.frameWidth, actorSpriteManifest.frameHeight],
+      feetY: actorSpriteManifest.feetY,
+      displayHeight: actorSpriteManifest.displayHeight,
+      fallback: actorSpriteManifest.fallback,
+      quality: actorSpriteManifest.quality,
+      previews:
+        "preview-tong-hop.png chỉ để người kiểm tra, không copy vào runtime",
+    },
+    reviewRequiredActorSprites: actorFilesCount,
     actor: {
       directions: actorVisualManifest.directions,
       states: actorVisualManifest.states.length,

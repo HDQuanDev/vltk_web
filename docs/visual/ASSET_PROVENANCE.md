@@ -1,3 +1,21 @@
+# Thay bộ art giao diện + môi trường v3 — 20/10/2026 (mới nhất)
+
+Toàn bộ art giao diện và art môi trường runtime đã được thay bằng **bộ art AI tạo ngày 19/10/2026 (bản v3)**, do chủ dự án cung cấp trong `art-moi/` (đã xoá sau khi nối; preview + brief lưu ở `artifacts/art-refresh/`). Không sửa logic game, không đổi tên file, không đổi `apps/web/src/ui/interface-art.ts`, `atlas-cells.json` hay `interfaceArtManifest`. Trạng thái vẫn **review-required** cho tới khi chủ dự án duyệt trực quan.
+
+| Nhóm | Thay gì | Ghi chú |
+| ---- | ------- | ------- |
+| 36 icon | `apps/web/public/assets/interface/<key>-v1.png` | Bản gốc 384² trong `assets/source/interface/icons-v3/`; runtime thu về **128²** đúng hợp đồng `interfaceArtManifest.iconSize`, giữ alpha |
+| Atlas runtime | `apps/web/public/assets/interface/icons-atlas-v1.png` | 768² trong suốt, dùng nguyên bản của bộ mới; đã đối chiếu 36 ô khớp đúng icon lẻ (tương quan ảnh 0.69–0.94 chỉ do resample) |
+| 3 atlas nguồn | `assets/source/interface/{icons-v1,icons-extra-v1,portraits-v1}.png` | Đúng hình học cũ (1254², 1448×1086, 1536×1024); thứ tự ô chân dung trùng code: male, female, elder / merchant, smith, teacher |
+| 6 chân dung | `apps/web/public/assets/interface/portrait-<id>-v1.png` | Bản 512² → **256²** đúng khổ runtime; thay theo đúng id, không cắt lại từ sheet |
+| Lobby | `apps/web/public/assets/interface/lobby-v1.png` + nguồn | 1920×1080 |
+| Môi trường | `assets/source/overhaul/*.png` (master) + `apps/web/public/assets/overhaul/*.png` (runtime ≤512) | house 512×383, tree 512×497, cherry 512×406, bamboo 358×512, ground 512² |
+
+**Không chạy `scripts/build-interface-art.mjs`** cho lượt này: script cắt lại icon từ atlas nguồn và **tô nền #171410** cho từng ô (padding 2px), tức là sẽ phá lớp trong suốt của bộ v3. File nguồn vẫn được thay đúng như brief để lần sync sau không đè ngược, nhưng runtime icon là bản cắt sẵn trong `icons/` thu về 128². Nếu sau này cần dựng lại từ atlas, phải bỏ bước tô nền và dùng alpha của atlas.
+
+`packages/game-content/src/visual-assets.ts` chỉ được cập nhật `width/height` của 4 prop cho khớp PNG mới (hợp đồng `validate:assets`); `pivot` và `displayWidth` giữ nguyên nên tỷ lệ hiển thị hơi cao hơn trước (cây/cherry/bamboo cao hơn ~15–50%).
+
+Kiểm chứng: `pnpm validate:assets` PASS (44 file interface + 5 prop + ground), `pnpm typecheck`/`lint`/`build` PASS, `pnpm test` 310/310, `pnpm test:e2e` **56/56**; `node scripts/capture-art-refresh.mjs` → 9 ảnh màn hình (lobby, world, inventory, tooltip, shop, workshop, storage, skills, character) với **0 icon rơi về SVG dự phòng, 0 ảnh lỗi**, toàn bộ 44 + 5 file art trả 200, art môi trường (ground/house/tree/cherry/bamboo) đều được nạp.
 # Art & audio provenance — 19/10/2026
 
 Các ảnh dưới đây tạo bằng **built-in ImageGen**, không dùng CLI/API key và không lấy asset game thương mại. Source giữ nguyên trong `assets/source/interface/`. Tất cả art mới có trạng thái **review-required**, chưa gắn nhãn production-ready. Pipeline crop/resize/pad/pack bằng canvas Chromium, không vẽ lại hay giả animation từ concept. Chạy `node scripts/build-interface-art.mjs`; metadata crop ở `atlas-cells.json`, semantic mapping tại `apps/web/src/ui/interface-art.ts`.
@@ -41,3 +59,15 @@ AudioManager preload sau gesture, decode không phát muộn event cũ, cùng vo
 Sau lượt QA chốt, thử tạo một cổng paifang isometric gốc với built-in ImageGen; công cụ trả `HTTP403 Forbidden` trước khi tạo ảnh. Không có asset cổng mới, không tích hợp hay tính thêm production-ready. Cổng procedural cũ vẫn là development art. CLI fallback có thể dùng `OPENAI_API_KEY`, nhưng chưa được yêu cầu sử dụng. Theo [imagegen SKILL.md](/Users/huaducquan/.codex/skills/.system/imagegen/SKILL.md): “Proceed only if the user explicitly asks for that fallback.”
 
 Spec để tiếp tục: single1024² transparent prop, orthographic2:1, weathered pale-stone pillars + dark-wood beams + gray-jade tiled roof,2redlanterns, OPEN passage/no door/no wall/no lettering/no ground plane,10%padding, feet contact at bottom; giữ collider/đường đi hiện có, kiểm tra alpha thật/pivot/depth/occlusion trước tích hợp.
+
+## Sprite quái 16 bộ (20/10/2026)
+
+Nguồn: gói `tat-ca-16-bo-quai-vat` do người dùng cung cấp, giải nén sẵn ở `quai-vat-moi/` (không tải từ internet, không lấy asset thương mại). Đã copy nguyên tên file/cấu trúc vào `apps/web/public/assets/monsters/<monsterId>/sprites/{down,right,up}/` — 16 bộ × 39 file = 624 PNG 256×256 nền trong suốt; ảnh `preview-tong-hop.png` của từng bộ chỉ để người kiểm tra, không copy vào runtime. Không resize, không vẽ lại, không sửa pixel. Thư mục giải nén `quai-vat-moi/` đã xoá sau khi copy (36MB); ảnh preview giữ ở `artifacts/monster-sprites/preview/<id>.png`, brief gốc ở `artifacts/monster-sprites/prompt-brief.md`.
+
+Chất lượng: **review-required** (`monsterSpriteManifest.quality`). Khuyết điểm đã biết của từng bộ (khung trùng/lật, mảnh hình kề bên, giới hạn bề ngang 256px) do người cung cấp liệt kê và được ghi nhận, không "sửa" bằng cách vẽ lại. Bằng chứng hiển thị: `artifacts/monster-sprites/` (16 ảnh inspector + ảnh in-game + A/B với fallback thủ tục), `artifacts/asset-audit.json` (`monsterSprites`).
+
+## Sprite nhân vật 20 bộ (20/10/2026)
+
+Nguồn: gói `20 bộ sprite nhân vật 10 phái × 2 giới tính` do người dùng cung cấp, giải nén sẵn ở `nhan-vat-moi/` (không tải từ internet, không lấy asset thương mại). Copy nguyên cấu trúc sang `apps/web/public/assets/actors/<phái>/<male|female>/sprites/{down,right,up}/` — 20 bộ + bộ trung lập `neutral/male` = 819 PNG 256×256 nền trong suốt; không resize, không vẽ lại, không sửa pixel. Thư mục giải nén đã xoá sau khi copy (44MB); preview giữ ở `artifacts/actor-sprites/preview/<phái>-<giới>.png`, brief gốc ở `artifacts/actor-sprites/prompt-brief.md`.
+
+Chất lượng: **review-required** (`actorSpriteManifest.quality`). Ghi nhận từ báo cáo bàn giao: một số khung hàng `up` là hình nghiêng/mặt trước do sheet gốc vẽ trượt; `up/run-2` của Thiên Nhẫn nữ dùng lại `run-1`; phong cách Nga Mi nữ và Cái Bang nữ trẻ hơn các bộ còn lại. Mọi bộ đủ 39/39 file. Bằng chứng hiển thị: `artifacts/actor-sprites/` (21 ảnh inspector + ảnh in-game + A/B với fallback), `artifacts/asset-audit.json` (`actorSprites`).

@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Kiểm tra sprite nhân vật — công cụ nội bộ</title>
+    <style>
+      body {
+        margin: 0;
+        background: #12251d;
+        color: #d8cba7;
+        font: 13px Arial;
+      }
+      header {
+        padding: 16px 28px;
+        border-bottom: 1px solid #897f5455;
+        display: flex;
+        gap: 24px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      h1 {
+        font: 21px Georgia;
+        margin: 0;
+      }
+      select {
+        background: #203c2b;
+        color: #dccba2;
+        padding: 6px;
+        border: 1px solid #897f54;
+      }
+      p {
+        padding: 0 28px;
+        color: #94aa90;
+        line-height: 1.6;
+      }
+      #status {
+        padding: 0 28px;
+        color: #bfe0a8;
+      }
+      main {
+        padding: 0 28px 40px;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+        max-width: 1180px;
+      }
+      figure {
+        margin: 0;
+        background: #172e24;
+        border: 1px solid #897f5433;
+        padding: 6px;
+        text-align: center;
+      }
+      figure img {
+        width: 100%;
+        max-width: 176px;
+        height: auto;
+        display: block;
+        margin: 0 auto;
+      }
+      figcaption {
+        font-size: 11px;
+        color: #b6c6a5;
+        margin-top: 4px;
+      }
+      .missing {
+        outline: 2px solid #c0503c;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Sprite nhân vật · 13 trạng thái × 3 hướng</h1>
+      <label
+        >Bộ
+        <select id="set"></select
+      ></label>
+    </header>
+    <p>
+      Mỗi ô là file PNG 256×256 thật trong <code>/assets/actors</code>, neo
+      giữa–đáy (chân ở y=246/256). Cột cuối là hướng trái = ảnh
+      <code>right</code> lật ngang, đúng cách runtime vẽ. Runtime chọn bộ theo
+      (phái, giới tính của nhân vật); thiếu bộ thì mượn
+      <code>neutral/male</code>, thiếu cả bộ đó thì vẽ thủ tục. Ánh xạ:
+      idle→stand, walk→walk-1/2, attack/cast/hit/hurt/die/use theo tên;
+      <code>run-*</code>, <code>loot</code>, <code>sit</code> chưa có state
+      trong core.
+    </p>
+    <div id="status">đang tải…</div>
+    <main id="grid"></main>
+    <script type="module" src="/src/devtools/actor-inspector.ts"></script>
+  </body>
+</html>

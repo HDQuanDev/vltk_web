@@ -15,6 +15,7 @@ import {
 } from "@kiem-hiep/game-protocol";
 import type { SaveRecord, SaveSlotIssue } from "@kiem-hiep/game-storage";
 import { drawActorFrame } from "../game/animations/atlas";
+import { actorSpriteFrame } from "../game/animations/actor-sprites";
 import { ArtIcon } from "./ArtIcon";
 
 const elementNames = {
@@ -36,20 +37,50 @@ export function CharacterPreview({
   useEffect(() => {
     const g = canvas.current?.getContext("2d");
     if (!g) return;
+    // 4 hướng nhìn: xuống, phải, lên và trái (ảnh phải lật ngang).
+    const directions = [2, 0, 6, 4] as Direction8[];
+    const images = new Map<string, HTMLImageElement>();
+    const spriteAt = (direction: Direction8) =>
+      actorSpriteFrame(classId, appearance, "idle", direction, 0);
+    for (const direction of directions) {
+      const sprite = spriteAt(direction);
+      if (!sprite) continue;
+      const image = new Image();
+      image.src = sprite.url;
+      images.set(sprite.url, image);
+    }
     let frame = 0;
+    let step = 0;
     const draw = () => {
       g.clearRect(0, 0, 192, 288);
-      g.save();
-      g.scale(3, 3);
-      drawActorFrame(
-        g,
-        (Math.floor(frame / 24) % 8) as Direction8,
-        "idle",
-        frame % 6,
-        `${appearance === "female" ? "female:" : ""}${actorVisualManifest.weaponByClass[classId] ?? "sword"}`,
-      );
-      g.restore();
+      const direction = directions[Math.floor(step / 20) % directions.length];
+      const sprite = spriteAt(direction);
+      const image = sprite ? images.get(sprite.url) : undefined;
+      if (sprite && image?.complete && image.naturalWidth) {
+        // Khung 256px neo chân y=246/256; phóng 208px cho vừa canvas 288px.
+        const size = 208;
+        g.save();
+        if (sprite.flipX) {
+          g.translate(192, 0);
+          g.scale(-1, 1);
+        }
+        g.drawImage(image, 96 - size / 2, 288 - size, size, size);
+        g.restore();
+      } else {
+        // Thiếu bộ ảnh (hoặc chưa tải xong): giữ bản vẽ thủ tục như cũ.
+        g.save();
+        g.scale(3, 3);
+        drawActorFrame(
+          g,
+          direction,
+          "idle",
+          frame % 6,
+          `${appearance === "female" ? "female:" : ""}${actorVisualManifest.weaponByClass[classId] ?? "sword"}`,
+        );
+        g.restore();
+      }
       frame++;
+      step++;
     };
     draw();
     const timer = setInterval(draw, 140);

@@ -1,0 +1,181 @@
+{
+  "base": "http://localhost:5205",
+  "viewport": [
+    1366,
+    768
+  ],
+  "inspector": [
+    {
+      "owner": "wudang/male",
+      "ready": 52,
+      "missing": 0
+    },
+    {
+      "owner": "wudang/female",
+      "ready": 52,
+      "missing": 0
+    },
+    {
+      "owner": "shaolin/male",
+      "ready": 52,
+      "missing": 0
+    },
+    {
+      "owner": "shaolin/female",
+      "ready": 52,
+      "missing": 0
+    },
+    {
+      "owner": "tianwang/male",
+      "ready": 52,
+      "missing": 0
+    },
+    {
+      "owner": "tianwang/female",
+      "ready": 52,
+      "missing": 0
+    },
+    {
+      "owner": "tangmen/male",
+      "ready": 52,
+      "missing": 0
+    },
+    {
+      "owner": "tangmen/female",
+      "ready": 52,
+      "missing": 0
+    },
+    {
+      "owner": "wudu/male",
+      "ready": 52,
+      "missing": 0
+    },
+    {
+      "owner": "wudu/female",
+      "ready": 52,
+      "missing": 0
+    },
+    {
+      "owner": "emei/male",
+      "ready": 52,
+      "missing": 0
+    },
+    {
+      "owner": "emei/female",
+      "ready": 52,
+      "missing": 0
+    },
+    {
+      "owner": "cuiyan/male",
+      "ready": 52,
+      "missing": 0
+    },
+    {
+      "owner": "cuiyan/female",
+      "ready": 52,
+      "missing": 0
+    },
+    {
+      "owner": "beggar/male",
+      "ready": 52,
+      "missing": 0
+    },
+    {
+      "owner": "beggar/female",
+      "ready": 52,
+      "missing": 0
+    },
+    {
+      "owner": "tianren/male",
+      "ready": 52,
+      "missing": 0
+    },
+    {
+      "owner": "tianren/female",
+      "ready": 52,
+      "missing": 0
+    },
+    {
+      "owner": "kunlun/male",
+      "ready": 52,
+      "missing": 0
+    },
+    {
+      "owner": "kunlun/female",
+      "ready": 52,
+      "missing": 0
+    },
+    {
+      "owner": "neutral/male",
+      "ready": 52,
+      "missing": 0
+    }
+  ],
+  "screens": [
+    "ingame-wudang-male",
+    "ingame-wudang-male-move",
+    "ingame-emei-female",
+    "ingame-emei-female-move"
+  ],
+  "diffs": [
+    {
+      "label": "player",
+      "differing": 540,
+      "total": 23400,
+      "ratio": 0.023
+    },
+    {
+      "label": "control-tr",
+      "differing": 0,
+      "total": 5360,
+      "ratio": 0
+    },
+    {
+      "label": "control-bl",
+      "differing": 1,
+      "total": 5360,
+      "ratio": 0
+    },
+    {
+      "label": "player",
+      "differing": 435,
+      "total": 23400,
+      "ratio": 0.019
+    },
+    {
+      "label": "control-tr",
+      "differing": 0,
+      "total": 5360,
+      "ratio": 0
+    },
+    {
+      "label": "control-bl",
+      "differing": 3,
+      "total": 5360,
+      "ratio": 0.001
+    }
+  ],
+  "actorAssetRequests": 18,
+  "ingameAssetRequests": [
+    "/assets/actors/emei/female/sprites/down/stand.png",
+    "/assets/actors/emei/female/sprites/down/walk-1.png",
+    "/assets/actors/emei/female/sprites/down/walk-2.png",
+    "/assets/actors/emei/female/sprites/right/stand.png",
+    "/assets/actors/emei/female/sprites/right/walk-1.png",
+    "/assets/actors/emei/female/sprites/right/walk-2.png",
+    "/assets/actors/emei/female/sprites/up/stand.png",
+    "/assets/actors/emei/female/sprites/up/walk-1.png",
+    "/assets/actors/emei/female/sprites/up/walk-2.png",
+    "/assets/actors/wudang/male/sprites/down/stand.png",
+    "/assets/actors/wudang/male/sprites/down/walk-1.png",
+    "/assets/actors/wudang/male/sprites/down/walk-2.png",
+    "/assets/actors/wudang/male/sprites/right/stand.png",
+    "/assets/actors/wudang/male/sprites/right/walk-1.png",
+    "/assets/actors/wudang/male/sprites/right/walk-2.png",
+    "/assets/actors/wudang/male/sprites/up/stand.png",
+    "/assets/actors/wudang/male/sprites/up/walk-1.png",
+    "/assets/actors/wudang/male/sprites/up/walk-2.png"
+  ],
+  "errors": [],
+  "note": "Inspector: 21 bộ × 13 state × 3 hướng (+ cột trái lật). In-game: 2 save tổng hợp (wudang/male, emei/female) nhập qua UI thật trong context riêng; A/B so vùng quanh nhân vật với lượt chặn 404 để chứng minh sprite PNG được vẽ."
+}

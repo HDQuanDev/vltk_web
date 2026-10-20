@@ -1,0 +1,187 @@
+{
+  "base": "http://localhost:5199",
+  "viewport": [
+    1366,
+    768
+  ],
+  "inspector": [
+    {
+      "id": "bandit",
+      "ready": 52,
+      "missing": 0
+    },
+    {
+      "id": "wolf",
+      "ready": 52,
+      "missing": 0
+    },
+    {
+      "id": "boss",
+      "ready": 52,
+      "missing": 0
+    },
+    {
+      "id": "archer",
+      "ready": 52,
+      "missing": 0
+    },
+    {
+      "id": "assassin",
+      "ready": 52,
+      "missing": 0
+    },
+    {
+      "id": "viper",
+      "ready": 52,
+      "missing": 0
+    },
+    {
+      "id": "mist-wolf",
+      "ready": 52,
+      "missing": 0
+    },
+    {
+      "id": "stone-ape",
+      "ready": 52,
+      "missing": 0
+    },
+    {
+      "id": "cloud-archer",
+      "ready": 52,
+      "missing": 0
+    },
+    {
+      "id": "shadow-blade",
+      "ready": 52,
+      "missing": 0
+    },
+    {
+      "id": "venom-moth",
+      "ready": 52,
+      "missing": 0
+    },
+    {
+      "id": "thunder-crane",
+      "ready": 52,
+      "missing": 0
+    },
+    {
+      "id": "bandit-lord",
+      "ready": 52,
+      "missing": 0
+    },
+    {
+      "id": "jade-serpent",
+      "ready": 52,
+      "missing": 0
+    },
+    {
+      "id": "storm-drummer",
+      "ready": 52,
+      "missing": 0
+    },
+    {
+      "id": "cloud-beast",
+      "ready": 52,
+      "missing": 0
+    }
+  ],
+  "screens": [
+    "ingame-spawn",
+    "ingame-chase",
+    "ingame-combat",
+    "ingame-dead",
+    "ingame-fallback"
+  ],
+  "monsterAssetRequests": 624,
+  "ingameAssetRequests": [
+    "/assets/monsters/bandit/sprites/down/stand.png",
+    "/assets/monsters/bandit/sprites/down/walk-1.png",
+    "/assets/monsters/bandit/sprites/down/walk-2.png",
+    "/assets/monsters/bandit/sprites/right/attack.png",
+    "/assets/monsters/bandit/sprites/right/die.png",
+    "/assets/monsters/bandit/sprites/right/stand.png",
+    "/assets/monsters/bandit/sprites/right/walk-1.png",
+    "/assets/monsters/bandit/sprites/right/walk-2.png",
+    "/assets/monsters/bandit/sprites/up/attack.png",
+    "/assets/monsters/bandit/sprites/up/stand.png",
+    "/assets/monsters/bandit/sprites/up/walk-1.png",
+    "/assets/monsters/bandit/sprites/up/walk-2.png",
+    "/assets/monsters/boss/sprites/down/attack.png",
+    "/assets/monsters/boss/sprites/down/cast.png",
+    "/assets/monsters/boss/sprites/down/hit.png",
+    "/assets/monsters/boss/sprites/down/stand.png",
+    "/assets/monsters/boss/sprites/down/walk-1.png",
+    "/assets/monsters/cloud-beast/sprites/down/stand.png",
+    "/assets/monsters/cloud-beast/sprites/down/walk-1.png",
+    "/assets/monsters/cloud-beast/sprites/down/walk-2.png",
+    "/assets/monsters/cloud-beast/sprites/up/walk-1.png",
+    "/assets/monsters/venom-moth/sprites/down/stand.png",
+    "/assets/monsters/venom-moth/sprites/up/stand.png",
+    "/assets/monsters/venom-moth/sprites/up/walk-1.png",
+    "/assets/monsters/venom-moth/sprites/up/walk-2.png",
+    "/assets/monsters/wolf/sprites/down/stand.png",
+    "/assets/monsters/wolf/sprites/right/run-1.png",
+    "/assets/monsters/wolf/sprites/up/run-1.png",
+    "/assets/monsters/wolf/sprites/up/run-2.png",
+    "/assets/monsters/wolf/sprites/up/stand.png"
+  ],
+  "abDiff": [
+    {
+      "monster": "bandit",
+      "differing": 598,
+      "total": 18000,
+      "ratio": 0.033
+    },
+    {
+      "monster": "wolf",
+      "differing": 613,
+      "total": 18000,
+      "ratio": 0.034
+    },
+    {
+      "monster": "venom-moth",
+      "differing": 1098,
+      "total": 16440,
+      "ratio": 0.067
+    },
+    {
+      "monster": "boss",
+      "differing": 1034,
+      "total": 28050,
+      "ratio": 0.037
+    },
+    {
+      "monster": "cloud-beast",
+      "differing": 1951,
+      "total": 18300,
+      "ratio": 0.107
+    },
+    {
+      "monster": "control-tr",
+      "differing": 0,
+      "total": 6264,
+      "ratio": 0
+    },
+    {
+      "monster": "control-tl",
+      "differing": 2,
+      "total": 6264,
+      "ratio": 0
+    },
+    {
+      "monster": "control-br",
+      "differing": 47,
+      "total": 6264,
+      "ratio": 0.008
+    },
+    {
+      "monster": "control-bl",
+      "differing": 1,
+      "total": 6264,
+      "ratio": 0
+    }
+  ],
+  "errors": [],
+  "note": "Ô inspector là toàn bộ 13 state × 3 hướng (+ cột trái lật). Ảnh in-game dùng save tổng hợp (5 quái + 1 quái yếu HP=1) nhập qua UI thật; không phải progression. abDiff = tỉ lệ pixel khác nhau trong vùng từng quái giữa lượt có sprite PNG và lượt bị chặn 404 (buộc vẽ thủ tục)."
+}
