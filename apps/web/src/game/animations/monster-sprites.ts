@@ -43,6 +43,16 @@ export function isBossMonster(definitionId: string): boolean {
   return monsterDefinition(definitionId)?.brain === "boss";
 }
 /**
+ * Cơ chế đặc biệt của boss (`quake`/`storm`) — dùng cho hiệu ứng hiển thị
+ * (rung camera, vòng đất lan). `null` với quái thường hoặc cơ chế khác.
+ */
+export function monsterBossMechanic(
+  definitionId: string,
+): "quake" | "storm" | null {
+  const mechanic = monsterDefinition(definitionId)?.bossMechanic;
+  return mechanic === "quake" || mechanic === "storm" ? mechanic : null;
+}
+/**
  * Quái đủ nhanh để dùng nhịp `run-*`: lấy từ `speed` của monster def nên chỉ là
  * ánh xạ hiển thị, không thêm trạng thái chạy vào simulation.
  */

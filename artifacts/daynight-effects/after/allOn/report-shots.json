@@ -1,0 +1,49 @@
+{
+  "run": "after",
+  "label": "allOn",
+  "prefsPatch": {},
+  "phases": [
+    "shots"
+  ],
+  "times": {
+    "01-midday": {
+      "timeTicks": 6000,
+      "clock": "Giờ Ngọ ☀",
+      "pixels": {
+        "width": 1366,
+        "height": 768,
+        "brightness": 98.85
+      }
+    },
+    "02-dusk": {
+      "timeTicks": 12000,
+      "clock": "Giờ Dậu ☀",
+      "pixels": {
+        "width": 1366,
+        "height": 768,
+        "brightness": 103.6
+      }
+    },
+    "03-midnight": {
+      "timeTicks": 18000,
+      "clock": "Giờ Tý ☀",
+      "pixels": {
+        "width": 1366,
+        "height": 768,
+        "brightness": 79.35
+      }
+    },
+    "04-dawn": {
+      "timeTicks": 24000,
+      "clock": "Giờ Mão ☀",
+      "pixels": {
+        "width": 1366,
+        "height": 768,
+        "brightness": 103.74
+      }
+    }
+  },
+  "perf": {},
+  "maps": {},
+  "errors": []
+}

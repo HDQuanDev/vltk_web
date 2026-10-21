@@ -1,0 +1,55 @@
+{
+  "run": "after",
+  "label": "allOff",
+  "prefsPatch": {
+    "glowLanterns": false,
+    "duskTint": false,
+    "depthFog": false,
+    "parallaxForeground": false,
+    "cameraLookahead": false
+  },
+  "phases": [
+    "shots"
+  ],
+  "times": {
+    "01-midday": {
+      "timeTicks": 6000,
+      "clock": "Giờ Ngọ ☀",
+      "pixels": {
+        "width": 1366,
+        "height": 768,
+        "brightness": 97.53
+      }
+    },
+    "02-dusk": {
+      "timeTicks": 12000,
+      "clock": "Giờ Dậu ☀",
+      "pixels": {
+        "width": 1366,
+        "height": 768,
+        "brightness": 97.41
+      }
+    },
+    "03-midnight": {
+      "timeTicks": 18000,
+      "clock": "Giờ Tý ☀",
+      "pixels": {
+        "width": 1366,
+        "height": 768,
+        "brightness": 77.61
+      }
+    },
+    "04-dawn": {
+      "timeTicks": 24000,
+      "clock": "Giờ Mão ☀",
+      "pixels": {
+        "width": 1366,
+        "height": 768,
+        "brightness": 97.53
+      }
+    }
+  },
+  "perf": {},
+  "maps": {},
+  "errors": []
+}

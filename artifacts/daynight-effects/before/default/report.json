@@ -1,0 +1,45 @@
+{
+  "run": "before",
+  "label": "default",
+  "prefsPatch": {},
+  "phases": [
+    "mapchange"
+  ],
+  "times": {},
+  "perf": {},
+  "maps": {
+    "changes": [
+      {
+        "step": "1-village",
+        "objects": 75,
+        "entities": "6",
+        "textures": "74"
+      },
+      {
+        "step": "2-forest",
+        "objects": 93,
+        "entities": "8",
+        "textures": "85"
+      },
+      {
+        "step": "3-village",
+        "objects": 79,
+        "entities": "6",
+        "textures": "87"
+      },
+      {
+        "step": "4-forest",
+        "objects": 94,
+        "entities": "8",
+        "textures": "100"
+      },
+      {
+        "step": "5-village",
+        "objects": 84,
+        "entities": "6",
+        "textures": "88"
+      }
+    ]
+  },
+  "errors": []
+}

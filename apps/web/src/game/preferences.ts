@@ -8,6 +8,16 @@ export interface ClientPreferences {
   combatVolume: number;
   uiVolume: number;
   masterVolume: number;
+  /** Đốm sáng quanh đèn lồng/vật phát sáng vào ban đêm. */
+  glowLanterns: boolean;
+  /** Tông hoàng hôn/bình minh phủ ấm khi chuyển ngày–đêm. */
+  duskTint: boolean;
+  /** Sương theo chiều sâu ở phía xa khung hình. */
+  depthFog: boolean;
+  /** Lớp tiền cảnh trôi lệch tốc độ camera. */
+  parallaxForeground: boolean;
+  /** Camera nhìn trước theo hướng di chuyển + hơi phóng khi chạy nhanh. */
+  cameraLookahead: boolean;
 }
 export const defaultPreferences: ClientPreferences = {
   quality: "auto",
@@ -18,6 +28,11 @@ export const defaultPreferences: ClientPreferences = {
   combatVolume: 0.65,
   uiVolume: 0.45,
   masterVolume: 0.7,
+  glowLanterns: true,
+  duskTint: true,
+  depthFog: true,
+  parallaxForeground: true,
+  cameraLookahead: true,
 };
 let current: ClientPreferences = { ...defaultPreferences };
 try {
@@ -37,6 +52,14 @@ try {
     current.joystick = raw.joystick;
   if (typeof raw.reducedMotion === "boolean")
     current.reducedMotion = raw.reducedMotion;
+  for (const key of [
+    "glowLanterns",
+    "duskTint",
+    "depthFog",
+    "parallaxForeground",
+    "cameraLookahead",
+  ] as const)
+    if (typeof raw[key] === "boolean") current[key] = raw[key];
 } catch {
   /* Các tùy chọn client có thể dùng mặc định, không ảnh hưởng bản lưu RPG. */
 }

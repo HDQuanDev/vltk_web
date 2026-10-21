@@ -1,24 +1,59 @@
-import { qualityBudget } from "../preferences";
+import { getPreferences, qualityBudget } from "../preferences";
 import Phaser from "phaser";
 import { resourceNodes } from "@kiem-hiep/game-content";
 import { worldToScreen } from "@kiem-hiep/game-core";
 import type { GameSnapshot } from "@kiem-hiep/game-protocol";
 import { elementColor } from "../animations/atlas";
+import { ensureDepthFogTextures } from "./art";
+import { duskFactorFromClock, nightFactorFromClock } from "../world/daynight";
 export class EnvironmentRenderer {
   private ground: Phaser.GameObjects.Graphics;
   private air: Phaser.GameObjects.Graphics;
   private weather: Phaser.GameObjects.Graphics;
   private night: Phaser.GameObjects.Rectangle;
+  /** Tông hoàng hôn/bình minh, ngay dưới lớp đêm. */
+  private dusk: Phaser.GameObjects.Rectangle;
+  /**
+   * Sương chiều sâu: hai dải gradient đứng yên (đỉnh 30% + đáy 38% chiều cao);
+   * khoảng giữa trong suốt nên không vẽ, đỡ tốn fill-rate. Trên lớp thời tiết.
+   */
+  private fogTop: Phaser.GameObjects.Image;
+  private fogBottom: Phaser.GameObjects.Image;
+  private fogTextures = { top: "", bottom: "" };
   private labels = new Map<string, Phaser.GameObjects.Text>();
   constructor(private scene: Phaser.Scene) {
     this.ground = scene.add.graphics().setDepth(-1);
     this.air = scene.add.graphics().setDepth(5000);
     this.weather = scene.add.graphics().setDepth(9000).setScrollFactor(0);
+    // Rectangle nhân alpha của object với fillAlpha: phải tạo fillAlpha 1 rồi
+    // điều khiển bằng setAlpha(), nếu không lớp phủ không bao giờ hiện.
     this.night = scene.add
-      .rectangle(0, 0, 1, 1, 0x122138, 0)
+      .rectangle(0, 0, 1, 1, 0x122138, 1)
       .setOrigin(0)
       .setScrollFactor(0)
-      .setDepth(8999);
+      .setDepth(8999)
+      .setAlpha(0);
+    this.dusk = scene.add
+      .rectangle(0, 0, 1, 1, 0xff8c3a, 1)
+      .setOrigin(0)
+      .setScrollFactor(0)
+      .setDepth(8998)
+      .setAlpha(0);
+    this.fogTextures = ensureDepthFogTextures(scene);
+    this.fogTop = scene.add
+      .image(0, 0, this.fogTextures.top)
+      .setOrigin(0)
+      .setScrollFactor(0)
+      .setDepth(9001)
+      .setAlpha(0)
+      .setVisible(false);
+    this.fogBottom = scene.add
+      .image(0, 0, this.fogTextures.bottom)
+      .setOrigin(0)
+      .setScrollFactor(0)
+      .setDepth(9001)
+      .setAlpha(0)
+      .setVisible(false);
   }
   changeMap(mapId: string) {
     for (const l of this.labels.values()) l.destroy();
@@ -156,12 +191,36 @@ export class EnvironmentRenderer {
           .lineBetween(loc.x - 9, loc.y - 5, loc.x + 9, loc.y - 12);
       }
     }
-    const width = this.scene.scale.width,
-      height = this.scene.scale.height;
-    this.night.setSize(width, height);
-    const day = (s.worldClock.timeTicks % 24000) / 24000,
-      night = Math.max(0, -Math.sin(day * Math.PI * 2));
-    this.night.setAlpha(night * 0.36);
+    const budget = qualityBudget(this.scene.scale.width),
+      width = this.scene.scale.width,
+      height = this.scene.scale.height,
+      prefs = getPreferences(),
+      night = nightFactorFromClock(s.worldClock.timeTicks),
+      // Hoàng hôn và sương đều là lớp phủ toàn màn hình (tốn fill-rate) nên tắt
+      // ở mức "low"; lớp đêm giữ nguyên vì là nền không khí cơ bản của bản đồ.
+      duskAlpha =
+        prefs.duskTint && budget.level !== "low"
+          ? duskFactorFromClock(s.worldClock.timeTicks) * 0.16
+          : 0,
+      fogAlpha = prefs.depthFog && budget.level !== "low" ? 1 - night * 0.5 : 0;
+    // Lớp phủ chỉ bật khi thật sự có tác dụng: alpha ~0 thì ẩn hẳn.
+    this.night
+      .setSize(width, height)
+      .setAlpha(night * 0.36)
+      .setVisible(night > 0.003);
+    this.dusk
+      .setSize(width, height)
+      .setAlpha(duskAlpha)
+      .setVisible(duskAlpha > 0.003);
+    this.fogTop
+      .setDisplaySize(width, Math.max(1, Math.round(height * 0.3)))
+      .setAlpha(fogAlpha)
+      .setVisible(fogAlpha > 0.003);
+    this.fogBottom
+      .setPosition(0, Math.round(height * 0.62))
+      .setDisplaySize(width, Math.max(1, Math.round(height * 0.38)))
+      .setAlpha(fogAlpha)
+      .setVisible(fogAlpha > 0.003);
     this.weather.clear();
     if (s.worldClock.weather === "rain") {
       const count =
@@ -197,6 +256,12 @@ export class EnvironmentRenderer {
     this.air.destroy();
     this.weather.destroy();
     this.night.destroy();
+    this.dusk.destroy();
+    this.fogTop.destroy();
+    this.fogBottom.destroy();
+    for (const key of [this.fogTextures.top, this.fogTextures.bottom])
+      if (key && this.scene.textures.exists(key))
+        this.scene.textures.remove(key);
     for (const l of this.labels.values()) l.destroy();
     this.labels.clear();
   }

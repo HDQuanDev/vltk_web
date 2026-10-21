@@ -1,0 +1,18 @@
+{
+  "a": "artifacts/daynight-effects/after/allOff",
+  "b": "artifacts/daynight-effects/after/onlyParallax",
+  "diffs": {
+    "01-midday.png": {
+      "meanAbsDiff": 2.305,
+      "changedRatio": 0.0537,
+      "box": [
+        34,
+        20,
+        1330,
+        644
+      ],
+      "aBrightness": 97.53,
+      "bBrightness": 95.95
+    }
+  }
+}

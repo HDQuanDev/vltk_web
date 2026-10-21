@@ -1,0 +1,28 @@
+{
+  "run": "after",
+  "label": "onlyGlow",
+  "prefsPatch": {
+    "glowLanterns": true,
+    "duskTint": false,
+    "depthFog": false,
+    "parallaxForeground": false,
+    "cameraLookahead": false
+  },
+  "phases": [
+    "shots"
+  ],
+  "times": {
+    "03-midnight": {
+      "timeTicks": 18000,
+      "clock": "Giờ Tý ☀",
+      "pixels": {
+        "width": 1366,
+        "height": 768,
+        "brightness": 78.71
+      }
+    }
+  },
+  "perf": {},
+  "maps": {},
+  "errors": []
+}

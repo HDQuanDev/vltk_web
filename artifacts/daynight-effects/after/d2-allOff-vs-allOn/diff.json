@@ -1,0 +1,54 @@
+{
+  "a": "artifacts/daynight-effects/after/allOff",
+  "b": "artifacts/daynight-effects/after/allOn",
+  "diffs": {
+    "01-midday.png": {
+      "meanAbsDiff": 5.179,
+      "changedRatio": 0.2179,
+      "box": [
+        34,
+        20,
+        1330,
+        748
+      ],
+      "aBrightness": 97.53,
+      "bBrightness": 98.85
+    },
+    "02-dusk.png": {
+      "meanAbsDiff": 18.466,
+      "changedRatio": 0.8048,
+      "box": [
+        14,
+        10,
+        1330,
+        748
+      ],
+      "aBrightness": 97.41,
+      "bBrightness": 103.6
+    },
+    "03-midnight.png": {
+      "meanAbsDiff": 4.301,
+      "changedRatio": 0.1159,
+      "box": [
+        14,
+        8,
+        1330,
+        684
+      ],
+      "aBrightness": 77.61,
+      "bBrightness": 79.35
+    },
+    "04-dawn.png": {
+      "meanAbsDiff": 18.525,
+      "changedRatio": 0.805,
+      "box": [
+        14,
+        10,
+        1330,
+        748
+      ],
+      "aBrightness": 97.53,
+      "bBrightness": 103.74
+    }
+  }
+}

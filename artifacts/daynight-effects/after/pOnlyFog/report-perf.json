@@ -1,0 +1,54 @@
+{
+  "run": "after",
+  "label": "pOnlyFog",
+  "prefsPatch": {
+    "glowLanterns": false,
+    "duskTint": false,
+    "depthFog": true,
+    "parallaxForeground": false,
+    "cameraLookahead": false
+  },
+  "phases": [
+    "perf"
+  ],
+  "times": {},
+  "perf": {
+    "high": {
+      "standing": {
+        "samples": 30,
+        "fps": 27.33,
+        "renderMs": 0.163,
+        "objects": 82,
+        "renderer": "WebGL"
+      },
+      "moving": {
+        "samples": 20,
+        "fps": 24.5,
+        "renderMs": 0.425,
+        "objects": 82,
+        "renderer": "WebGL"
+      }
+    },
+    "low": {
+      "standing": {
+        "samples": 30,
+        "fps": 28,
+        "renderMs": 0.137,
+        "objects": 76,
+        "renderer": "WebGL"
+      },
+      "moving": {
+        "samples": 20,
+        "fps": 24.6,
+        "renderMs": 0.18,
+        "objects": 74.8,
+        "renderer": "WebGL"
+      }
+    }
+  },
+  "maps": {
+    "high": 82,
+    "low": 74.8
+  },
+  "errors": []
+}

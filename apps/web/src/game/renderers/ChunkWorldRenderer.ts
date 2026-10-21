@@ -15,13 +15,19 @@ import {
   type ChunkPosition,
 } from "../world/chunks";
 import { getPreferences, qualityBudget } from "../preferences";
+import { ensureGlowTexture } from "./art";
 interface ChunkView {
   terrain: Phaser.GameObjects.Image;
   props: Phaser.GameObjects.Image[];
+  /** Đốm sáng của đèn lồng trong chunk — sống và chết cùng chunk. */
+  glows: Phaser.GameObjects.Image[];
   texture: string;
   bytes: number;
   used: number;
 }
+/** Bán kính sáng của đèn lồng (px màn hình) và độ lệch lên trên theo chiều cao ảnh. */
+const LANTERN_GLOW_RADIUS = 90;
+const LANTERN_GLOW_OFFSET = 0.17;
 const hash = (x: number, y: number) => {
   let s =
     (Math.imul(x + 1237, 374761393) ^ Math.imul(y + 2341, 668265263)) >>> 0;
@@ -184,6 +190,9 @@ export class ChunkWorldRenderer {
   private created = 0;
   private released = 0;
   private createdThisFrame = 0;
+  /** Đèn lồng được bật sáng (trần theo qualityBudget().maxEffects). */
+  private litGlows = new Set<Phaser.GameObjects.Image>();
+  private glowsDirty = true;
   constructor(private scene: Phaser.Scene) {}
   changeMap(id: string) {
     this.destroy();
@@ -196,11 +205,17 @@ export class ChunkWorldRenderer {
     }
     this.resolution = qualityBudget(this.scene.scale.width).chunkResolution;
   }
+  /**
+   * `nightFactor` do WorldScene tính từ worldClock (0 ban ngày → 1 giữa đêm);
+   * renderer không tự đọc session.
+   */
   update(
     player: { x: number; y: number },
     renderedPosition = worldToScreen(player),
+    nightFactor = 0,
   ) {
-    const budget = qualityBudget(this.scene.scale.width);
+    const budget = qualityBudget(this.scene.scale.width),
+      prefs = getPreferences();
     if (budget.chunkResolution !== this.resolution) {
       const id = this.map.id;
       this.changeMap(id);
@@ -252,6 +267,26 @@ export class ChunkWorldRenderer {
       this.createdThisFrame++;
     }
     this.queued = pending.length - this.createdThisFrame;
+    // Trần đèn sáng theo ngân sách: chỉ những đèn gần người chơi nhất (xếp lúc
+    // tập chunk thay đổi) được bật.
+    if (this.glowsDirty) {
+      const all: Phaser.GameObjects.Image[] = [];
+      for (const c of this.cache.values()) all.push(...c.glows);
+      all.sort(
+        (a, b) =>
+          Math.hypot(a.x - renderedPosition.x, a.y - renderedPosition.y) -
+          Math.hypot(b.x - renderedPosition.x, b.y - renderedPosition.y),
+      );
+      this.litGlows = new Set(all.slice(0, budget.maxEffects));
+      this.glowsDirty = false;
+    }
+    const glowAlpha =
+        prefs.glowLanterns && nightFactor > 0.01 ? 0.55 * nightFactor : 0,
+      glowOff = glowAlpha === 0;
+    const applyGlow = (glow: Phaser.GameObjects.Image, on: boolean) => {
+      glow.setAlpha(glowAlpha);
+      glow.setVisible(on && !glowOff && this.litGlows.has(glow));
+    };
     for (const chunk of positions) {
       const entry = this.cache.get(chunk.key);
       if (!entry) continue;
@@ -270,18 +305,20 @@ export class ChunkWorldRenderer {
           p.y - 42 >= b.top &&
           p.y - 42 <= b.bottom &&
           p.y < at.y + 12;
-        const fade = getPreferences().reducedMotion
+        const fade = prefs.reducedMotion
           ? 1
           : 1 - Math.exp(-Math.min(50, this.scene.game.loop.delta) / 90);
         sprite.setAlpha(
           Phaser.Math.Linear(sprite.alpha, covers ? 0.38 : 1, fade),
         );
       }
+      for (const glow of entry.glows) applyGlow(glow, true);
     }
     for (const [key, c] of this.cache)
       if (!this.active.has(key)) {
         c.terrain.setVisible(false);
         for (const p of c.props) p.setVisible(false);
+        for (const glow of c.glows) applyGlow(glow, false);
       }
     for (const [key, c] of [...this.cache].sort(
       (a, b) => a[1].used - b[1].used,
@@ -308,6 +345,7 @@ export class ChunkWorldRenderer {
       .setOrigin(0)
       .setDisplaySize(bounds.width, bounds.height)
       .setDepth(-10000);
+    const glows: Phaser.GameObjects.Image[] = [];
     const props = (this.indexedProps.get(chunk.key) ?? []).map((p) => {
       const at = worldToScreen(p),
         asset = propAssets.find((a) => a.type === p.type);
@@ -327,11 +365,28 @@ export class ChunkWorldRenderer {
       sprite
         .setDepth(at.y + (p.type === "house" ? 12 : 0))
         .setData("occlusion", p);
+      // Đèn lồng: đốm sáng sống theo chunk, tắt hẳn ngoài khung đêm.
+      if (p.type === "lantern")
+        glows.push(
+          this.scene.add
+            .image(
+              at.x,
+              at.y - Math.round(sprite.displayHeight * LANTERN_GLOW_OFFSET),
+              ensureGlowTexture(this.scene),
+            )
+            .setBlendMode(Phaser.BlendModes.ADD)
+            .setDisplaySize(LANTERN_GLOW_RADIUS * 2, LANTERN_GLOW_RADIUS * 2)
+            .setDepth(at.y - 1)
+            .setAlpha(0)
+            .setVisible(false),
+        );
       return sprite;
     });
+    this.glowsDirty = true;
     return {
       terrain,
       props,
+      glows,
       texture,
       bytes: canvas.width * canvas.height * 4,
       used: this.clock,
@@ -355,6 +410,11 @@ export class ChunkWorldRenderer {
         0,
       ),
       cachedChunks: this.cache.size,
+      glowObjects: [...this.cache.values()].reduce(
+        (n, c) => n + c.glows.length,
+        0,
+      ),
+      litGlows: this.litGlows.size,
       terrainBytes: [...this.cache.values()].reduce((n, c) => n + c.bytes, 0),
     };
   }
@@ -362,7 +422,12 @@ export class ChunkWorldRenderer {
     this.released++;
     c.terrain.destroy();
     for (const p of c.props) p.destroy();
+    for (const glow of c.glows) {
+      this.litGlows.delete(glow);
+      glow.destroy();
+    }
     this.scene.textures.remove(c.texture);
+    this.glowsDirty = true;
   }
   destroy() {
     for (const c of this.cache.values()) this.release(c);
@@ -370,5 +435,7 @@ export class ChunkWorldRenderer {
     this.indexedProps.clear();
     this.active.clear();
     this.queued = 0;
+    this.litGlows.clear();
+    this.glowsDirty = true;
   }
 }

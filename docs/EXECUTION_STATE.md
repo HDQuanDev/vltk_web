@@ -1,4 +1,35 @@
-# Phiên thay art giao diện + môi trường v3 — 20/10/2026 (mới nhất)
+# Phiên hiệu ứng "giả 3D" môi trường (đèn lồng, hoàng hôn, sương, tiền cảnh, camera) — 20/10/2026 (mới nhất)
+
+Scope: chỉ tầng hiển thị `apps/web/src/game/` + `preferences.ts`. Không sửa `packages/`, không sửa `App.tsx`/`src/ui/`, không đổi luật chơi. 5 công tắc mới trong `ClientPreferences` (mặc định bật, lưu chung khóa `kiem-hiep-client-v1`); **chưa có nút bật/tắt trong panel Thiết lập** vì `src/ui/` nằm ngoài phạm vi được sửa — hiện chỉ đổi được qua localStorage/`setPreferences`.
+
+## Đã triển khai
+
+- `world/daynight.ts`: `dayPhaseFromClock`, `nightFactorFromClock` (đúng công thức cũ của `EnvironmentRenderer`), `duskFactorFromClock` = |cos(2π·day)| (0 giữa trưa/giữa đêm, 1 ở hai chuyển giao). `EnvironmentRenderer` dùng lại hai hàm đầu thay vì tính tại chỗ.
+- `EnvironmentRenderer`: lớp hoàng hôn `0xff8c3a` depth 8998 (alpha = dusk·0.16); sương chiều sâu 2 dải gradient `0xdfe9ea` depth 9001 (alpha 1 − night·0.5, tắt ở quality "low"); ẩn hẳn lớp khi alpha ≈ 0.
+- `ChunkWorldRenderer`: đốm sáng đèn lồng theo vòng đời chunk (`ChunkView.glows`, blend ADD, bán kính 90px, alpha 0.55·nightFactor), trần `qualityBudget().maxEffects` theo khoảng cách tới người chơi; `update()` nhận thêm `nightFactor` từ WorldScene.
+- `WorldScene`: bóng actor đổi theo trạng thái (cast/attack 0.85/0.22, dead 0.15, còn lại 1/0.4, boss giữ 60×12), đốm sáng người chơi 70px (0.3·nightFactor), khởi tạo/hủy `ForegroundRenderer`, truyền `nightFactor`.
+- `renderers/ForegroundRenderer.ts` (mới): 2 lớp tile parallax scrollFactor 0 — ngọn cây (depth 9600, cao 11% màn hình, alpha 0.55) và mây (depth 9550, 4%, alpha 0.3); hệ số trôi 0.15/0.3, reducedMotion → đứng yên, quality "low" → không tạo lớp.
+- `camera/CameraController.ts`: nhìn trước tối đa 24px theo hướng di chuyển (nội suy 1−e^(−delta/140), đứng yên > 300ms thì về 0) + phóng 1.05 khi tốc độ > movementSpeed·1.15 liên tục 1s; zoom người dùng vẫn do lăn chuột quản lý; reducedMotion tắt cả hai.
+- `CombatVFXRenderer` + `world/boss-effects.ts`: sự kiện skill/impact của quái có `bossMechanic` quake/storm → vòng elip lan trên mặt đất (90×45px, cùng bể Graphics, cùng trần maxEffects) và `WorldScene.effect()` rung `shake(120, 0.0025)` khi effects "high" + không reducedMotion.
+- `renderers/art.ts`: `ensureGlowTexture`, `ensureDepthFogTextures`, `ensureForegroundTextures` (canvas tạo một lần).
+- **Sửa lỗi có sẵn**: `scene.add.rectangle(..., 0x122138, 0)` tạo `fillAlpha = 0`; Phaser nhân alpha object với `fillAlpha` nên lớp đêm **chưa bao giờ vẽ**. Đã đổi sang `fillAlpha 1` + `setAlpha()`.
+
+## Kiểm chứng đã chạy
+
+- `pnpm typecheck`, `pnpm lint` PASS. `pnpm test` **318/318** (22 file; thêm 4 case daynight + 2 case boss mechanic). `pnpm validate:content` PASS. `pnpm build` PASS (precache 70 entry/9673 KiB). `pnpm validate:assets` PASS, không lỗi mới. `pnpm test:e2e` **56/56**.
+- Chụp 4 mốc worldClock (Ngọ/Dậu/Tý/Mão) bằng `scripts/capture-daynight-effects.mjs` + save tổng hợp nhập qua UI: `artifacts/daynight-effects/{before,after}/`. Tắt cả 5 công tắc cho ảnh trùng bản trước khi sửa (meanAbsDiff 0.12–0.39, đổi 0.19–0.22% pixel — chỉ nhiễu animation), riêng mốc Tý khác 80.7% pixel vì lớp đêm nay mới thật sự vẽ.
+- Từng công tắc (so với ảnh tắt hết, cùng mốc): chỉ glow (Tý) đổi 5.8% pixel, sáng 78.71 vs 77.61; chỉ dusk (Dậu) đổi 80% pixel, sáng 102.73 vs 97.41; chỉ fog (Ngọ) đổi 21.5% pixel, sáng 100.88 vs 97.53; chỉ parallax (Ngọ) đổi 5.4% pixel, sáng 95.95 vs 97.53. reducedMotion bật ở mốc Tý: meanAbsDiff 0.48 (1.5% pixel) so với bản thường → hiệu ứng tĩnh, không phụ thuộc chuyển động.
+- Đổi map qua cổng 2 vòng (làng→rừng→làng→rừng→làng): objects 85→98→89→100→94; mức tăng mỗi lần về làng (+4, +5) trùng bản trước khi sửa (+4, +5) → không rò đối tượng sáng/tiền cảnh.
+- Hiệu năng (`onDiagnostics`, cảnh Tân Thủ Thôn: đứng yên 30s, rồi 4 vòng chạy 5s, headless Chromium + SwiftShader, renderer WebGL, 1366×768) — fps đứng/chạy, trước → sau (bật hết): quality high 30.73/28.70 → 26.40/23.90 (−14.1%/−16.7%); quality low 30.63/28.80 → 32.27/30.55 (+5.4%/+6.1%). **Mức high không đạt yêu cầu ≤3%**: đo tách cho thấy chi phí nằm ở fill-rate của lớp phủ toàn màn hình (chỉ dusk −7…−9%, chỉ fog −10…−15%), `renderMs` của WorldScene gần như không đổi (0.11–0.15ms). Đã giảm bằng cách chỉ vẽ 2 dải sương có gradient và tắt dusk+fog ở "low"; muốn đạt 3% ở "high" phải bỏ chính hiệu ứng. Chưa đo trên GPU thật.
+
+## Giới hạn còn lại
+
+- Chưa chụp được khoảnh khắc boss Hắc Phong Trại Chủ dùng quake (rung + vòng đất): điều kiện kích hoạt đã có test đơn vị (`bossMechanicEvent`), phần vẽ chỉ kiểm bằng đọc code, không phải ảnh chụp.
+- Camera nhìn trước/phóng nhẹ không thể hiện trong ảnh tĩnh (lead về 0 khi đứng yên) và ngưỡng phóng cần haste (tốc độ đi bộ cố định 3.4); chưa có ảnh đối chiếu cho hạng mục này.
+- 5 công tắc chưa có UI trong panel Thiết lập (xem scope ở trên).
+
+
+# Phiên thay art giao diện + môi trường v3 — 20/10/2026
 
 Scope: chỉ tài nguyên hiển thị. Không sửa logic game, không đổi tên file, không sửa `apps/web/src/ui/interface-art.ts`, `atlas-cells.json`, `interfaceArtManifest`. Nguồn: bộ art AI 19/10/2026 (v3) trong `art-moi/`, đã xoá sau khi nối.
 

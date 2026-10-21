@@ -38,8 +38,11 @@ import { animationFrame } from "../animations/frames";
 import { EnvironmentRenderer } from "../renderers/EnvironmentRenderer";
 import { ChunkWorldRenderer } from "../renderers/ChunkWorldRenderer";
 import { CameraController } from "../camera/CameraController";
-import { createPropTextures } from "../renderers/art";
+import { createPropTextures, ensureGlowTexture } from "../renderers/art";
 import { GroundLootRenderer } from "../renderers/GroundLootRenderer";
+import { ForegroundRenderer } from "../renderers/ForegroundRenderer";
+import { nightFactorFromClock } from "../world/daynight";
+import { bossMechanicEvent } from "../world/boss-effects";
 /** Neo chân (246/256) và ngưỡng HP dùng chung cho mọi bộ ảnh actor. */
 const spriteOriginY = actorSpriteOriginY;
 const hurtHpRatio = actorSpriteManifest.hurtHpRatio;
@@ -73,6 +76,8 @@ interface EntityView {
   sprite: Phaser.GameObjects.Image;
   bar: Phaser.GameObjects.Graphics;
   ring: Phaser.GameObjects.Ellipse;
+  /** Bóng dưới chân: đổi độ đậm/độ lớn theo trạng thái (attack/cast/dead). */
+  shadow: Phaser.GameObjects.Ellipse;
   label: Phaser.GameObjects.Text;
   /** Bản vẽ thủ tục đang dùng, để quay lại khi thiếu ảnh sprite. */
   atlas: { key: string; width: number; height: number };
@@ -87,6 +92,9 @@ export class WorldScene extends Phaser.Scene {
   private vfx?: CombatVFXRenderer;
   private lootRenderer?: GroundLootRenderer;
   private cameraController?: CameraController;
+  private foreground?: ForegroundRenderer;
+  /** Đốm sáng nhỏ quanh nhân vật người chơi cục bộ, sáng dần khi về đêm. */
+  private playerGlow?: Phaser.GameObjects.Image;
   private lastDiagnostics = 0;
   private session: GameSession;
   private snapshot!: GameSnapshot;
@@ -141,6 +149,13 @@ export class WorldScene extends Phaser.Scene {
         this.session.sendCommand({ type: "pickup", lootId });
     });
     this.cameraController = new CameraController(this);
+    this.foreground = new ForegroundRenderer(this);
+    this.playerGlow = this.add
+      .image(0, 0, ensureGlowTexture(this))
+      .setBlendMode(Phaser.BlendModes.ADD)
+      .setDisplaySize(140, 140)
+      .setAlpha(0)
+      .setVisible(false);
     this.buildMap();
     this.unsubscribe = this.session.subscribe((u) => {
       this.snapshot = u.snapshot;
@@ -275,6 +290,9 @@ export class WorldScene extends Phaser.Scene {
       this.worldRenderer?.destroy();
       this.vfx?.destroy();
       this.lootRenderer?.destroy();
+      this.foreground?.destroy();
+      this.playerGlow?.destroy();
+      this.playerGlow = undefined;
       this.monsterSprites?.dispose();
       this.actorSprites?.dispose();
     };
@@ -514,6 +532,7 @@ export class WorldScene extends Phaser.Scene {
       sprite,
       bar,
       ring,
+      shadow,
       label,
       atlas,
       spriteSource,
@@ -622,6 +641,11 @@ export class WorldScene extends Phaser.Scene {
       this.syncActorSprite(e, v);
       v.container.setAlpha(e.hp <= 0 ? 0.55 : 1);
       v.container.setVisible(true);
+      // Bóng theo trạng thái: cast/attack thì nhỏ và nhạt hơn, chết thì mờ hẳn.
+      const crouch = e.state === "cast" || e.state === "attack",
+        down = e.state === "dead";
+      v.shadow.setScale(crouch ? 0.85 : 1);
+      v.shadow.setAlpha(down ? 0.15 : crouch ? 0.22 : 0.4);
       v.label.setY(v.labelY);
       v.bar.clear();
       if (e.hp > 0) {
@@ -658,15 +682,15 @@ export class WorldScene extends Phaser.Scene {
       }
       v.ring.setVisible(e.kind === "player" || p.targetId === e.id);
     }
-    this.cameraController?.update(
-      this.snapshot,
-      delta,
-      this.views.get(p.id)?.container,
-    );
-    this.worldRenderer?.update(p, this.views.get(p.id)?.container);
+    const playerView = this.views.get(p.id),
+      nightFactor = nightFactorFromClock(this.snapshot.worldClock.timeTicks);
+    this.cameraController?.update(this.snapshot, delta, playerView?.container);
+    this.worldRenderer?.update(p, playerView?.container, nightFactor);
     this.environment?.update(this.snapshot);
     this.vfx?.update(this.snapshot.paused);
     this.lootRenderer?.update(this.snapshot);
+    this.foreground?.update();
+    this.syncPlayerGlow(playerView, nightFactor);
     if (time - this.lastDiagnostics > 1000) {
       this.lastDiagnostics = time;
       this.callbacks.onDiagnostics?.({
@@ -723,5 +747,31 @@ export class WorldScene extends Phaser.Scene {
       )
         this.cameras.main.shake(60, 0.0012);
     }
+    // Boss dùng kỹ năng cơ chế (quake/storm): rung màn hình, cùng điều kiện
+    // effects "high" và tôn trọng reducedMotion như rung chí mạng.
+    if (
+      bossMechanicEvent(e, this.snapshot) &&
+      !getPreferences().reducedMotion &&
+      this.snapshot.settings.effects === "high"
+    )
+      this.cameras.main.shake(120, 0.0025);
+  }
+  /** Đốm sáng nhỏ của người chơi cục bộ: theo view, chỉ hiện khi về đêm. */
+  private syncPlayerGlow(
+    playerView: EntityView | undefined,
+    nightFactor: number,
+  ) {
+    const glow = this.playerGlow;
+    if (!glow || !playerView) {
+      glow?.setVisible(false);
+      return;
+    }
+    const alpha = getPreferences().glowLanterns ? 0.3 * nightFactor : 0;
+    glow.setVisible(alpha > 0.01);
+    if (alpha <= 0.01) return;
+    glow
+      .setPosition(playerView.container.x, playerView.container.y - 10)
+      .setDepth(playerView.container.y - 1)
+      .setAlpha(alpha);
   }
 }

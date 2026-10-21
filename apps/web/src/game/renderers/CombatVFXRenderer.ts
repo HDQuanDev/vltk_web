@@ -7,12 +7,15 @@ import type {
 } from "@kiem-hiep/game-protocol";
 import { elementColor } from "../animations/atlas";
 import { getPreferences, qualityBudget } from "../preferences";
+import { bossMechanicEvent } from "../world/boss-effects";
 interface Burst {
   object: Phaser.GameObjects.Graphics;
   until: number;
   start: number;
   x: number;
   y: number;
+  /** "ground" = vòng đất lan của boss (nội suy bán kính 0→90px). */
+  kind: "burst" | "ground";
 }
 interface Popup {
   object: Phaser.GameObjects.Text;
@@ -42,25 +45,37 @@ export class CombatVFXRenderer {
       return;
     const limit = qualityBudget(this.scene.scale.width).maxEffects;
     if (this.active.length >= limit) return;
+    // Boss dùng kỹ năng cơ chế (quake/storm): thêm vòng elip lan trên mặt đất
+    // đúng tỉ lệ phối cảnh iso 2:1, dùng chung bể Graphics và trần maxEffects.
+    const ground = !!bossMechanicEvent(e, s),
+      y = ground ? at.y : at.y - 20;
     const g = (this.free.pop() ?? this.scene.add.graphics())
       .clear()
       .setVisible(true)
       .setAlpha(1)
       .setScale(1)
-      .setPosition(at.x, at.y - 20)
+      .setPosition(at.x, y)
       .setDepth(at.y + 100);
     const element = e.element ?? entity.element;
     const impact = e.type === "damage" || e.type === "impact",
       size = e.type === "level" ? 60 : impact ? 28 : 43;
-    this.draw(g, element, size, e.type === "heal" || e.skillId === "heal");
+    if (ground) this.drawGroundRing(g);
+    else this.draw(g, element, size, e.type === "heal" || e.skillId === "heal");
     const start = this.scene.time.now;
     this.active.push({
       object: g,
       start,
-      until: start + (impact ? 330 : 650),
+      until: start + (ground ? 520 : impact ? 330 : 650),
       x: at.x,
-      y: at.y - 20,
+      y,
+      kind: ground ? "ground" : "burst",
     });
+  }
+  /** Vòng đất lan: bán kính ngang 90px, dọc 45px (iso 2:1); update() nở dần. */
+  private drawGroundRing(g: Phaser.GameObjects.Graphics) {
+    g.fillStyle(0xd8c9a2, 0.12).fillEllipse(0, 0, 180, 90);
+    g.lineStyle(3.5, 0xe7cb96, 0.85).strokeEllipse(0, 0, 180, 90);
+    g.lineStyle(1.2, 0xf5e6c1, 0.6).strokeEllipse(0, 0, 150, 75);
   }
   private draw(
     g: Phaser.GameObjects.Graphics,
@@ -193,10 +208,14 @@ export class CombatVFXRenderer {
         this.free.push(b.object);
         return false;
       }
-      const p = (now - b.start) / (b.until - b.start);
+      const p = (now - b.start) / (b.until - b.start),
+        still = getPreferences().reducedMotion;
+      // Vòng đất: bán kính lan 0 → 90px. Burst thường giữ nhịp phồng cũ.
       b.object
         .setAlpha(1 - p)
-        .setScale(getPreferences().reducedMotion ? 1 : 1 + p * 0.55);
+        .setScale(
+          still ? 1 : b.kind === "ground" ? Math.max(0.05, p) : 1 + p * 0.55,
+        );
       return true;
     });
     this.texts = this.texts.filter((t) => {

@@ -132,3 +132,107 @@ export function createPropTextures(scene: Phaser.Scene) {
       scene.textures.addCanvas(key, c);
     }
 }
+
+/** Khóa texture đốm sáng dùng chung cho đèn lồng và nhân vật. */
+export const GLOW_TEXTURE = "fx:lantern-glow";
+export const DEPTH_FOG_TEXTURE = "fx:depth-fog";
+export const FOREGROUND_NEAR_TEXTURE = "fx:foreground-near";
+export const FOREGROUND_FAR_TEXTURE = "fx:foreground-far";
+/**
+ * Đốm sáng tròn mềm (radial gradient) vẽ MỘT LẦN rồi dùng lại cho mọi đèn lồng.
+ * Dùng ảnh + blend ADD thay cho PointLight để chạy được cả khi Phaser rơi về
+ * Canvas renderer và để đếm được theo ngân sách chất lượng.
+ */
+export function ensureGlowTexture(scene: Phaser.Scene, color = "255,195,122") {
+  if (scene.textures.exists(GLOW_TEXTURE)) return GLOW_TEXTURE;
+  const size = 128;
+  const { c, g } = canvas(size, size);
+  const gradient = g.createRadialGradient(
+    size / 2,
+    size / 2,
+    0,
+    size / 2,
+    size / 2,
+    size / 2,
+  );
+  gradient.addColorStop(0, `rgba(${color},0.85)`);
+  gradient.addColorStop(0.45, `rgba(${color},0.32)`);
+  gradient.addColorStop(1, `rgba(${color},0)`);
+  g.fillStyle = gradient;
+  g.fillRect(0, 0, size, size);
+  scene.textures.addCanvas(GLOW_TEXTURE, c);
+  return GLOW_TEXTURE;
+}
+/**
+ * Sương theo chiều sâu: hai dải gradient đứng yên — mép trên đậm 0.14 rồi tắt
+ * hẳn ở 30% chiều cao, đáy mờ 0.08 (dải 38% cuối). Khoảng giữa trong suốt nên
+ * không vẽ, tiết kiệm fill-rate mà hình không đổi. Alpha tổng do renderer nhân.
+ */
+export function ensureDepthFogTextures(scene: Phaser.Scene) {
+  const top = `${DEPTH_FOG_TEXTURE}-top`,
+    bottom = `${DEPTH_FOG_TEXTURE}-bottom`;
+  if (!scene.textures.exists(top)) {
+    const { c, g } = canvas(8, 77);
+    const gradient = g.createLinearGradient(0, 0, 0, 77);
+    gradient.addColorStop(0, "rgba(223,233,234,0.14)");
+    gradient.addColorStop(1, "rgba(223,233,234,0)");
+    g.fillStyle = gradient;
+    g.fillRect(0, 0, 8, 77);
+    scene.textures.addCanvas(top, c);
+  }
+  if (!scene.textures.exists(bottom)) {
+    const { c, g } = canvas(8, 98);
+    const gradient = g.createLinearGradient(0, 0, 0, 98);
+    gradient.addColorStop(0, "rgba(223,233,234,0)");
+    gradient.addColorStop(1, "rgba(223,233,234,0.08)");
+    g.fillStyle = gradient;
+    g.fillRect(0, 0, 8, 98);
+    scene.textures.addCanvas(bottom, c);
+  }
+  return { top, bottom } as const;
+}
+/**
+ * Hai lớp tiền cảnh parallax vẽ bằng canvas (không cắt từ texture prop vì prop
+ * house/tree có viền trong suốt lớn, cắt ngọn sẽ lộ nền cắt vuông).
+ * Trả về [gần, xa] — mỗi texture cao 256px, được tile ngang nên mép khép kín.
+ */
+export function ensureForegroundTextures(scene: Phaser.Scene) {
+  if (!scene.textures.exists(FOREGROUND_NEAR_TEXTURE)) {
+    const { c, g } = canvas(512, 256);
+    // Tán lá phía trên + hai cụm cành hai bên: silhouette tối, mép dưới răng cưa.
+    g.fillStyle = "#1d2b22";
+    for (let i = 0; i < 7; i++) {
+      const x = i * 76 + 20;
+      const r = 48 + (i % 3) * 12;
+      g.beginPath();
+      g.ellipse(x, 18 + (i % 2) * 10, r, r * 0.62, 0, 0, Math.PI * 2);
+      g.fill();
+      g.beginPath();
+      g.ellipse(x + 34, 6, r * 0.8, r * 0.5, 0, 0, Math.PI * 2);
+      g.fill();
+    }
+    for (let i = 0; i < 5; i++) {
+      g.strokeStyle = "#1a2721";
+      g.lineWidth = 5 - (i % 2);
+      g.beginPath();
+      g.moveTo(i * 118 + 30, 60);
+      g.quadraticCurveTo(i * 118 + 70, 92, i * 118 + 104, 74);
+      g.stroke();
+    }
+    scene.textures.addCanvas(FOREGROUND_NEAR_TEXTURE, c);
+  }
+  if (!scene.textures.exists(FOREGROUND_FAR_TEXTURE)) {
+    const { c, g } = canvas(512, 256);
+    // Mây mờ lớn: chồng nhiều elip alpha thấp để không thành mảng đặc.
+    g.fillStyle = "rgba(226,235,231,0.5)";
+    for (let i = 0; i < 9; i++) {
+      const x = (i * 143) % 512;
+      const y = 70 + (i % 3) * 26;
+      g.beginPath();
+      g.ellipse(x, y, 96 - (i % 3) * 16, 34 - (i % 3) * 6, 0, 0, Math.PI * 2);
+      g.fill();
+    }
+    scene.textures.addCanvas(FOREGROUND_FAR_TEXTURE, c);
+  }
+  return [FOREGROUND_NEAR_TEXTURE, FOREGROUND_FAR_TEXTURE] as const;
+}

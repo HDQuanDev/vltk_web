@@ -1,0 +1,28 @@
+{
+  "run": "after",
+  "label": "onlyFog",
+  "prefsPatch": {
+    "glowLanterns": false,
+    "duskTint": false,
+    "depthFog": true,
+    "parallaxForeground": false,
+    "cameraLookahead": false
+  },
+  "phases": [
+    "shots"
+  ],
+  "times": {
+    "01-midday": {
+      "timeTicks": 6000,
+      "clock": "Giờ Ngọ ☀",
+      "pixels": {
+        "width": 1366,
+        "height": 768,
+        "brightness": 100.88
+      }
+    }
+  },
+  "perf": {},
+  "maps": {},
+  "errors": []
+}

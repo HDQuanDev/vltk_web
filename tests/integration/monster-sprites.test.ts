@@ -4,6 +4,7 @@ import {
   hasMonsterSprites,
   isBossMonster,
   isFastMonster,
+  monsterBossMechanic,
   monsterFacing,
   monsterSpriteFiles,
   monsterSpriteFrame,
@@ -106,3 +107,18 @@ function mapWalk(elapsed: number) {
 function mapRun(elapsed: number) {
   return monsterSpriteState("walk", elapsed, { fast: true });
 }
+
+describe("cơ chế boss dùng cho hiệu ứng hiển thị", () => {
+  it("chỉ trả về quake/storm cho đúng định nghĩa quái", () => {
+    expect(monsterBossMechanic("boss")).toBe("quake");
+    expect(monsterBossMechanic("cloud-beast")).toBe("storm");
+    expect(monsterBossMechanic("bandit")).toBeNull();
+    expect(monsterBossMechanic("khong-ton-tai")).toBeNull();
+  });
+  it("mọi quái có bossMechanic đều ánh xạ được sang hiệu ứng", () => {
+    const withMechanic = monsters.filter((m) => m.bossMechanic);
+    expect(withMechanic.length).toBeGreaterThan(0);
+    for (const monster of withMechanic)
+      expect(monsterBossMechanic(monster.id), monster.id).not.toBeNull();
+  });
+});
