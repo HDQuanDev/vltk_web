@@ -1,0 +1,91 @@
+{
+  "mode": "2d",
+  "mobile": false,
+  "errors": [],
+  "steps": {
+    "village": {
+      "text": "TRẢI NGHIỆM CỦA BẠNThiết lậpÂm thanh & hình ảnhÂm thanh chiến đấuHiệu ứng âm thanh tổng hợpNhạc nềnGiai điệu ngũ cung nhẹ nhàngChất lượng hiệu ứngCaoTiết kiệmGiới hạn khung hình Áp dụng sau khi tải lại game60 FPS30 FPSHiển thị & điều khiểnChất lượng dựng hìnhKhông thay đổi simulationTự độngThấpVừaCao Giảm chuyển động / tắt rung cameraCần di chuyểnCố địnhNổi tại điểm chạmBộ trộn âm thanhTổng70%Nhạc45%Môi trường35%Chiến đấu65%Giao diện45%Thử âm thanhAudio running · 0/16 voices · Nhạc: village. Nhạc/SFX gốc tổng hợp; chưa phải thư viện nhạc cụ thu âm sản xuất.Thế giới & mô phỏngTạm dừng thời gian gameTạm dừngTick 98 · 6 entity map hiện tại · 34 FPS · CPU render 0.20ms · 85 objects · 88 textures · WebGL · 26/32 chunks · terrain CPU 36.6 MiB · 0 VFXAI: 5 / active 6 · nearby 0 · inactive 0 · tick 0.00ms · publish 0.00msGửi 6/6 entity · dormant 0 quái · Loot 0/512 · Kho vùng 0/2048 · Hết hạn 0 · Từ chối 0 · Thu hồi thường 0Tiến trình của bạnTự động lưu mỗi 15 giây và khi đổi bản đồ. Bản lưu trước được giữ dự phòng trong IndexedDB.Lưu ngay Xuất bản lưu Nhập bản lưuBản offline được lưu trên trình duyệt này. Hãy xuất bản lưu trước khi xóa dữ liệu trình duyệt.KIẾM HIỆP WEBGiang hồ trong một tấc lòng",
+      "fps": 60,
+      "renderMs": 0.2,
+      "objects": 85,
+      "textures": 88,
+      "renderer": "WebGL",
+      "chunks": [
+        "26",
+        "32"
+      ],
+      "terrainMiB": 36.6,
+      "vfx": 0
+    },
+    "villageAtlas": {
+      "text": "TRẢI NGHIỆM CỦA BẠNThiết lậpÂm thanh & hình ảnhÂm thanh chiến đấuHiệu ứng âm thanh tổng hợpNhạc nềnGiai điệu ngũ cung nhẹ nhàngChất lượng hiệu ứngCaoTiết kiệmGiới hạn khung hình Áp dụng sau khi tải lại game60 FPS30 FPSHiển thị & điều khiểnChất lượng dựng hìnhKhông thay đổi simulationTự độngThấpVừaCao Giảm chuyển động / tắt rung cameraCần di chuyểnCố địnhNổi tại điểm chạmBộ trộn âm thanhTổng70%Nhạc45%Môi trường35%Chiến đấu65%Giao diện45%Thử âm thanhAudio running · 0/16 voices · Nhạc: village. Nhạc/SFX gốc tổng hợp; chưa phải thư viện nhạc cụ thu âm sản xuất.Thế giới & mô phỏngTạm dừng thời gian gameTạm dừngTick 167 · 6 entity map hiện tại · 26 FPS · CPU render 0.00ms · 85 objects · 89 textures · WebGL · 26/32 chunks · terrain CPU 36.6 MiB · 0 VFXAI: 5 / active 6 · nearby 0 · inactive 0 · tick 0.10ms · publish 0.00msGửi 6/6 entity · dormant 0 quái · Loot 0/512 · Kho vùng 0/2048 · Hết hạn 0 · Từ chối 0 · Thu hồi thường 0Tiến trình của bạnTự động lưu mỗi 15 giây và khi đổi bản đồ. Bản lưu trước được giữ dự phòng trong IndexedDB.Lưu ngay Xuất bản lưu Nhập bản lưuBản offline được lưu trên trình duyệt này. Hãy xuất bản lưu trước khi xóa dữ liệu trình duyệt.KIẾM HIỆP WEBGiang hồ trong một tấc lòng",
+      "fps": 60,
+      "renderMs": 0,
+      "objects": 85,
+      "textures": 89,
+      "renderer": "WebGL",
+      "chunks": [
+        "26",
+        "32"
+      ],
+      "terrainMiB": 36.6,
+      "vfx": 0
+    },
+    "perf": {
+      "samples": 5,
+      "fpsAvg": 60,
+      "renderMsAvg": 0.08
+    },
+    "drawCalls": null,
+    "mapChange": [
+      {
+        "round": 0,
+        "textures": 92,
+        "gpuTextures": null,
+        "geometries": null,
+        "objects": 88,
+        "chunks": [
+          "28",
+          "32"
+        ],
+        "terrainMiB": 36.6
+      },
+      {
+        "round": 1,
+        "textures": 94,
+        "gpuTextures": null,
+        "geometries": null,
+        "objects": 101,
+        "chunks": [
+          "28",
+          "32"
+        ],
+        "terrainMiB": 36.6
+      },
+      {
+        "round": 2,
+        "textures": 97,
+        "gpuTextures": null,
+        "geometries": null,
+        "objects": 100,
+        "chunks": [
+          "28",
+          "32"
+        ],
+        "terrainMiB": 36.6
+      },
+      {
+        "round": 3,
+        "textures": 96,
+        "gpuTextures": null,
+        "geometries": null,
+        "objects": 92,
+        "chunks": [
+          "26",
+          "32"
+        ],
+        "terrainMiB": 36.6
+      }
+    ]
+  }
+}

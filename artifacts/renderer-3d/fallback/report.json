@@ -1,0 +1,9 @@
+{
+  "result": {
+    "canvases": 0,
+    "errorText": "Không khởi động được bộ hiển thị 3D (WebGL bị chặn (kiểm chứng fallback)). Đã chuyển về bản 2D.",
+    "visible": false,
+    "renderMode": "2d"
+  },
+  "errors": []
+}

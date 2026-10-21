@@ -1,0 +1,87 @@
+{
+  "results": {
+    "directions": [
+      {
+        "name": "Hanh 3D 1",
+        "left": "683px",
+        "top": "298px"
+      },
+      {
+        "name": "H0",
+        "left": "683px",
+        "top": "298px"
+      },
+      {
+        "name": "H1",
+        "left": "768px",
+        "top": "335px"
+      },
+      {
+        "name": "H2",
+        "left": "866px",
+        "top": "377px"
+      },
+      {
+        "name": "H3",
+        "left": "980px",
+        "top": "426px"
+      },
+      {
+        "name": "H4",
+        "left": "598px",
+        "top": "335px"
+      },
+      {
+        "name": "H5",
+        "left": "683px",
+        "top": "377px"
+      },
+      {
+        "name": "H6",
+        "left": "782px",
+        "top": "426px"
+      },
+      {
+        "name": "H7",
+        "left": "899px",
+        "top": "484px"
+      }
+    ],
+    "combat": {
+      "popups": [
+        "32",
+        "4",
+        "4"
+      ]
+    },
+    "nightRain": {
+      "bg": {
+        "w": 1366,
+        "h": 768
+      },
+      "clock": "⌖14, 14\nGiờ Tý ☀",
+      "gpu": {
+        "calls": 49,
+        "triangles": 680,
+        "geometries": 38,
+        "textures": 30,
+        "programs": 12,
+        "weather": "rain",
+        "effects": "high"
+      }
+    },
+    "loot": {
+      "lootLabels": [
+        "◆ Nhiệm vụ",
+        "Dược phẩm",
+        "Trang bị",
+        "◇ Thanh Trúc Lâm",
+        "◇ Thanh Sơn Ngoại Vực",
+        "Bụi Linh Thảo",
+        "Gỗ Thanh Tùng"
+      ],
+      "appLoot": 0
+    }
+  },
+  "errors": []
+}
