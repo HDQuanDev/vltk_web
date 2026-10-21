@@ -3,6 +3,7 @@ import { CharacterPreview } from "./CharacterLobby";
 import { ShopPanel } from "./ShopPanel";
 import { questNavigation } from "./quest-navigation";
 import { ClientSettings } from "./ClientSettings";
+import { CacheReset } from "./CacheReset";
 import { SectSkillsPanel } from "./SectSkillsPanel";
 import { WorkshopPanel } from "./WorkshopPanel";
 import { StoragePanel } from "./StoragePanel";
@@ -884,6 +885,7 @@ export function Panels(p: Props) {
                 Bản offline được lưu trên trình duyệt này. Hãy xuất bản lưu
                 trước khi xóa dữ liệu trình duyệt.
               </p>
+              <CacheReset />
             </>
           )}
           {panel === "guide" && (

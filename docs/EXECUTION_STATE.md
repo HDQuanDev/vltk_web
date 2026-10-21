@@ -1,3 +1,24 @@
+# Phiên nút "Xóa bộ nhớ đệm & tải lại" trong Thiết lập — 21/10/2026 (mới nhất)
+
+Scope: tầng client. Thêm nút trong panel Thiết lập để thoát tình trạng điện thoại giữ bản game cũ nhiều giờ do service worker phục vụ từ cache. Không đổi gameplay, không đổi dữ liệu lưu.
+
+## Đã triển khai
+
+- `apps/web/src/app/pwa-cache.ts`: `clearAppCache()` xóa toàn bộ `CacheStorage` và hủy đăng ký mọi service worker; trả `{ cachesDeleted, workersRemoved, failures }`. Lỗi được **đếm** thay vì ném ra để nút vẫn tải lại được; `caches.delete()` trả `false` (cache đã biến mất) không tính là lỗi. **Không** đụng IndexedDB (bản lưu) hay localStorage (tuỳ chọn).
+- `apps/web/src/ui/CacheReset.tsx`: khối "Bộ nhớ đệm & cập nhật" — xác nhận bằng `window.confirm`, hiện tiến trình/kết quả qua `role="status"`, rồi `location.reload()` sau 700ms. Gắn vào panel Thiết lập ngay dưới mục "Tiến trình của bạn" (`Panels.tsx`).
+- Bản lưu vẫn an toàn vì chỉ xóa cache PWA; SW đăng ký lại ở lần tải kế tiếp và lấy mã mới từ mạng.
+
+## Kiểm chứng đã chạy
+
+- `tests/integration/pwa-cache.test.ts` (4 case): xóa đủ key, thiếu API, lỗi được đếm, cache đã biến mất không tính lỗi. `pnpm test` **329/329**.
+- `tests/e2e/cache-reset.spec.ts`: chạy trên bản build + preview thật, SW đang kiểm soát trang. Đặt cache đánh dấu `kiem-hiep-sentinel`, bấm nút, xác nhận dialog → sau khi tự tải lại: cache đánh dấu **đã biến mất**, app vào lại được, service worker **đăng ký lại**, bản lưu trong IndexedDB **còn nguyên**. `playwright test` **57/57**.
+- `pnpm healthcheck` PASS (typecheck, lint, test, validate), bundle `three` vẫn ở chunk riêng.
+
+## Giới hạn
+
+- Bản đang cài trên máy người dùng phải có nút này thì mới dùng được; lần đầu vẫn cần một lần xóa cache thủ công (hoặc bấm "Cập nhật game" khi banner cập nhật hiện) để nhận bản mới.
+- Nút không xóa HTTP cache của trình duyệt cho tài nguyên ngoài SW (không có tài nguyên như vậy trong app hiện tại).
+
 # Phiên healthcheck (endpoint `/healthz` + lệnh `pnpm healthcheck`) — 21/10/2026 (mới nhất)
 
 Scope: công cụ kiểm tra, không đổi gameplay hay tầng hiển thị. Thêm `apps/web/healthz-plugin.ts` (plugin Vite) gắn `GET /healthz` vào máy chủ dev + preview; thêm `scripts/healthcheck.mjs` và lệnh `pnpm healthcheck`. Repo là PWA tĩnh, `apps/server` chỉ có README nên endpoint được gắn vào máy chủ đang phục vụ app thay vì thêm service mới.
