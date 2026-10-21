@@ -109,6 +109,8 @@ const entity = vec.extend({
   phase: integer,
   facing: number,
   autoAttack: z.boolean(),
+  /** Đuổi đánh một mục tiêu do click (khác tự chiến). Bản lưu cũ có thể thiếu. */
+  autoChase: z.boolean().optional(),
   statuses: z
     .array(
       statusApplicationSchema.extend({
@@ -151,6 +153,8 @@ const entity = vec.extend({
   spawnZoneId: z.string().optional(),
   spawnSlot: integer.optional(),
   elite: z.boolean().optional(),
+  /** Tự chiến tạm dừng ngầm khi mở hội thoại/shop. Bản lưu cũ có thể thiếu. */
+  autoCombatPaused: z.boolean().optional(),
 });
 export const characterSchema = z.object({
   playedTicks: integer.default(0),
@@ -182,12 +186,18 @@ export const characterSchema = z.object({
       lastClaimTick: integer.optional(),
     }),
   ),
+  /**
+   * NPC đã nói chuyện (lưu tick). Bản lưu cũ không có trường này nên để
+   * optional; khi nạp bản lưu cũ sẽ tự điền giá trị mặc định rỗng.
+   */
+  questTalks: z.record(z.string(), integer).optional(),
   gold: integer,
   settings: z.object({
     sound: z.boolean(),
     music: z.boolean(),
     effects: z.enum(["high", "low"]),
-    fps: z.union([z.literal(30), z.literal(60)]),
+    /** 0 = không giới hạn khung hình. Bản lưu cũ chỉ có 30/60 nên vẫn hợp lệ. */
+    fps: z.union([z.literal(0), z.literal(30), z.literal(60)]),
   }),
   pendingInteraction: z.string().nullable(),
   branchId: z.string(),
@@ -205,8 +215,31 @@ export const characterSchema = z.object({
     mpThreshold: number.min(0).max(1),
     stopHp: number.min(0).max(1),
     range: number.min(2).max(12),
+    /** Bản lưu cũ thiếu 2 cờ này: mặc định bật để hành vi tự chiến đầy đủ. */
+    skills: z.boolean().optional(),
+    autoPickup: z.boolean().optional(),
   }),
-  /** Save cũ không có trường này; mặc định rỗng và chỉ giữ 20 dòng gần nhất. */
+  /**
+   * Bộ đếm + thành tựu. Bản lưu cũ thiếu trường này; thế giới sẽ tự suy ra
+   * giá trị khởi tạo từ trạng thái hiện tại chứ không xóa dữ liệu nào.
+   */
+  achievements: z
+    .object({
+      counters: z.object({
+        kills: integer.default(0),
+        wolfKills: integer.default(0),
+        peakGold: integer.default(0),
+        enhancementSuccess: integer.default(0),
+      }),
+      claimed: z.array(z.string()).default([]),
+    })
+    .optional(),
+  /** Mốc thời gian thật (ms) tinh anh được phép xuất hiện lại. */
+  eliteSpawns: z.record(z.string(), integer).optional(),
+  /** Cờ bỏ qua mục tiêu của tự chiến (id quái → tick hết hạn). */
+  autoCombatSkip: z.record(z.string(), integer).optional(),
+  /** Mốc thời gian thật (ms) được phép dịch chuyển nhanh lần kế tiếp. */
+  travelReadyAt: integer.optional(),
   /** Save cũ không có trường này; giữ optional để round-trip save/load không đổi shape. */
   enhanceLog: z.array(enhanceRecord).max(20).optional(),
 });
@@ -497,6 +530,10 @@ export interface SaveRecord {
   snapshot: GameSnapshot;
   savedAt: number;
 }
+/** Số bản dự phòng xoay vòng giữ lại cho mỗi nhân vật (C1). */
+export const BACKUP_SLOTS = 3;
+/** Khoảng cách tối thiểu giữa hai lần ghi dự phòng (5 phút). */
+export const BACKUP_INTERVAL_MS = 5 * 60 * 1000;
 export interface SaveSlotIssue {
   characterId: string;
   name: string;
@@ -600,6 +637,36 @@ export class SaveRepository {
     }
     return { records, issues };
   }
+  /**
+   * Ghi bản dự phòng xoay vòng (C1).
+   *
+   * Giữ tối đa `BACKUP_SLOTS` bản gần nhất trong cùng kho lưu trữ, chỉ ghi khi
+   * dữ liệu khác bản dự phòng mới nhất VÀ cách lần ghi trước >= 5 phút, để
+   * không ghi liên tục theo chu kỳ tự lưu 15 giây.
+   */
+  private async writeRotatingBackup(previous: SaveRecord) {
+    const existing = await this.db.backups.toArray(),
+      mine = existing
+        .filter((r) => r.characterId === previous.characterId)
+        .sort((a, b) => b.savedAt - a.savedAt),
+      latest = mine[0];
+    if (latest) {
+      if (Date.now() - latest.savedAt < BACKUP_INTERVAL_MS) return;
+      if (
+        JSON.stringify(latest.snapshot) === JSON.stringify(previous.snapshot)
+      )
+        return;
+    }
+    await this.db.backups.put({
+      ...previous,
+      // Khóa riêng theo mốc thời gian để giữ nhiều bản; `recover` đọc bản mới nhất.
+      saveId: `backup:${previous.characterId}:${previous.savedAt}`,
+      savedAt: previous.savedAt,
+    });
+    // Xoá các bản cũ vượt quá số ô dự phòng.
+    for (const record of mine.slice(BACKUP_SLOTS - 1))
+      await this.db.backups.delete(record.saveId);
+  }
   private async readRecord(record: SaveRecord) {
     const snapshot = validateSave(record.snapshot);
     if (requiresMigration(record.snapshot))
@@ -649,10 +716,7 @@ export class SaveRepository {
           if (previous) {
             try {
               validateSave(previous.snapshot);
-              await this.db.backups.put({
-                ...previous,
-                saveId: `backup:${valid.characterId}`,
-              });
+              await this.writeRotatingBackup(previous);
             } catch {
               await this.db.archives.put({
                 archiveId: `corrupt:${valid.characterId}:${previous.savedAt}`,
@@ -684,8 +748,26 @@ export class SaveRepository {
     return record ? this.readRecord(record) : null;
   }
   async recover(characterId: string) {
-    const record = await this.db.backups.get(`backup:${characterId}`);
-    return record ? validateSave(record.snapshot) : null;
+    // Bản dự phòng mới nhất còn đọc được; khóa có thể là bản cũ một ô hoặc
+    // khóa xoay vòng `backup:<characterId>:<savedAt>`.
+    const records = (await this.db.backups.toArray())
+      .filter((r) => r.characterId === characterId)
+      .sort((a, b) => b.savedAt - a.savedAt);
+    for (const record of records) {
+      try {
+        return validateSave(record.snapshot);
+      } catch {
+        /* thử bản dự phòng kế tiếp */
+      }
+    }
+    return null;
+  }
+  /** Mốc thời gian bản dự phòng mới nhất còn đọc được (dùng cho thông báo). */
+  async backupSavedAt(characterId: string) {
+    const records = (await this.db.backups.toArray())
+      .filter((r) => r.characterId === characterId)
+      .sort((a, b) => b.savedAt - a.savedAt);
+    return records[0]?.savedAt ?? null;
   }
   async archives(characterId: string) {
     return this.db.archives.where("characterId").equals(characterId).toArray();
@@ -707,8 +789,11 @@ export class SaveRepository {
             snapshot: previous.snapshot,
           });
         }
-        const backup = await this.db.backups.get(`backup:${characterId}`);
-        if (backup) {
+        // Lưu trữ TẤT CẢ bản dự phòng xoay vòng trước khi xóa nhân vật.
+        const backups = (await this.db.backups.toArray()).filter(
+          (r) => r.characterId === characterId,
+        );
+        for (const backup of backups) {
           await this.db.archives.put({
             archiveId: `deleted-backup:${characterId}:${createLocalCharacterId()}`,
             characterId,
@@ -716,9 +801,9 @@ export class SaveRepository {
             reason: "Bản dự phòng trước khi xóa nhân vật",
             snapshot: backup.snapshot,
           });
+          await this.db.backups.delete(backup.saveId);
         }
         await this.db.saves.delete(`save:${characterId}`);
-        await this.db.backups.delete(`backup:${characterId}`);
       },
     );
   }

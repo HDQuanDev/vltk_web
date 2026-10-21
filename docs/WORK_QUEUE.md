@@ -54,6 +54,8 @@ Danh sách việc đang mở, lấy từ [ROADMAP](ROADMAP.md) và [FULL_OFFLINE
 | F2   | 6+ dungeon instance: entry condition, wave, boss, reward, checkpoint, reset       | open       | Instance state lưu/khôi phục đúng, reset rule test được                          |
 | F3   | Companion, party, mount, NPC guild, duel/arena/tournament, siege, world event     | open       | Từng hệ thống có authority logic + UI + save; không xoá khỏi roadmap              |
 | F4   | Progression tới cấp 100 thực tế (EXP/stat/skill/attribute curve)                  | open       | Có số đo cân bằng và test hành trình tới mốc cấp cao                              |
+| F1b  | Chuỗi nhiệm vụ: tiến độ tăng theo id ổn định, bước hội thoại, toast, panel + tracker đọc chung nguồn, số thứ tự 2 chữ số, lưu bản lưu | done | 15 case integration (`tests/integration/quest-progress.test.ts`) + 3 case E2E ở 844×390 (`tests/e2e/quest-progress.spec.ts`); nguyên nhân gốc rễ: layout hội thoại ở màn ngang thấp đẩy nút "Nhận nhiệm vụ" ra ngoài vùng cuộn (chỉ 4.1px/38.5px) |
+| F4b  | Gói 10 tính năng trải nghiệm (tự chiến thật, thanh máu/số sát thương, phát sáng cường hóa, Hồi Thành Phù + dịch chuyển nhanh, tinh anh theo giờ, thành tựu, bảo vệ bản lưu, vòng sáng ban đêm, FPS áp ngay) | done | 29 case integration (`tests/integration/upgrade-features.test.ts`) + 7 case E2E (`tests/e2e/upgrade-features.spec.ts`); `pnpm healthcheck` 5/5; A2/A3 canvas chỉ kiểm qua hành vi UI, chưa đo pixel |
 
 ## G — Acceptance / polish
 | ID   | Việc                                                                              | Trạng thái | Điều kiện hoàn thành                                                          |

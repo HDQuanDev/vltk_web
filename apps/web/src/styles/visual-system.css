@@ -1220,9 +1220,11 @@ select:focus-visible {
   .quest-tracker {
     top: max(90px, calc(env(safe-area-inset-top) + 90px));
   }
-  .toast {
+  .toast-stack {
     bottom: auto;
     top: 65%;
+  }
+  .toast {
     font-size: 11px;
     padding: 8px 12px;
   }

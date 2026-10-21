@@ -163,6 +163,11 @@ export const itemSchema = z.object({
   maxHp: z.number().nonnegative().default(0),
   maxMp: z.number().nonnegative().default(0),
   restore: z.enum(["hp", "mp"]).optional(),
+  /**
+   * Vật phẩm dịch chuyển: id bản đồ đích. Dùng chung thao tác `useItem`
+   * sẵn có, không tạo đường dùng riêng.
+   */
+  teleport: z.string().optional(),
   description: z.string(),
 });
 /**
@@ -317,6 +322,19 @@ export const items = [
     level: 1,
     description:
       "Bán ở thợ rèn. Bật khi cường hóa để không mất cấp nếu lần đập đó thất bại.",
+  },
+  {
+    id: "town-scroll",
+    name: "Hồi Thành Phù",
+    kind: "consumable",
+    icon: "manual",
+    rarity: "uncommon",
+    stack: 99,
+    price: 50,
+    level: 1,
+    teleport: "village",
+    description:
+      "Xé lá phù này để về ngay Tân Thủ Thôn. Không dùng được khi đã ở trong thôn hoặc đã trọng thương.",
   },
 ].map((i) => itemSchema.parse(i));
 export type ItemDefinition = z.infer<typeof itemSchema>;
@@ -631,7 +649,34 @@ export const questObjectiveLabel = (q: {
         ? "Hoàn thành công thức yêu cầu"
         : q.objectiveKind === "explore"
           ? "Khám phá khu vực yêu cầu"
-          : "Thực hiện mục tiêu";
+          : q.objectiveKind === "talk"
+            ? `Nói chuyện với ${npcs.find((n) => n.id === q.target)?.name ?? q.target}`
+            : q.objectiveKind === "equip"
+              ? `Trang bị ${items.find((i) => i.id === q.target)?.name ?? q.target}`
+              : "Thực hiện mục tiêu";
+
+/**
+ * Tên ngắn của mục tiêu để dựng thông báo tiến độ dạng "Sơn tặc 2/5".
+ * Luôn dùng id ổn định trong content, không dùng chuỗi tên hiển thị.
+ */
+export const questTargetLabel = (q: {
+  objectiveKind: string;
+  target: string;
+}) => {
+  if (q.objectiveKind === "kill")
+    return monsters.find((m) => m.id === q.target)?.name ?? q.target;
+  if (q.objectiveKind === "collect" || q.objectiveKind === "equip")
+    return items.find((i) => i.id === q.target)?.name ?? q.target;
+  if (q.objectiveKind === "craft")
+    return recipes.find((r) => r.id === q.target)?.name ?? q.target;
+  if (q.objectiveKind === "talk")
+    return npcs.find((n) => n.id === q.target)?.name ?? q.target;
+  const map = maps.find(
+    (m) => m.id === q.target || m.areas?.some((a) => a.id === q.target),
+  );
+  if (!map) return "Khu vực yêu cầu";
+  return map.areas?.find((a) => a.id === q.target)?.name ?? map.name;
+};
 export interface NpcDefinition {
   id: string;
   name: string;
@@ -2247,6 +2292,155 @@ resourceNodes.push(
   },
 );
 
+/**
+ * Tinh anh xuất hiện theo chu kỳ thời gian thật.
+ *
+ * Khai báo dạng dữ liệu để logic chỉ đọc, không rải số cứng. `point` là toạ độ
+ * có sẵn của bãi quái trong map (dùng lại điểm spawn, không bịa vị trí mới).
+ */
+export interface EliteSpawnDefinition {
+  id: string;
+  /** Id quái gốc trong `monsters`; tinh anh thừa hưởng id này cho nhiệm vụ. */
+  monsterId: string;
+  mapId: string;
+  name: string;
+  point: { x: number; y: number };
+  /** Hệ số nhân chỉ số so với quái gốc. */
+  multipliers: { hp: number; attack: number; exp: number };
+  /** Tỉ lệ vẽ sprite so với quái gốc. */
+  scale: number;
+  /** Chu kỳ xuất hiện lại, tính bằng mili giây thời gian thật. */
+  cycleMs: number;
+}
+export const elites: EliteSpawnDefinition[] = [
+  {
+    id: "elite-wolf",
+    monsterId: "wolf",
+    mapId: "forest",
+    name: "Lang Vương Tinh Anh",
+    point: { x: 17, y: 17 },
+    multipliers: { hp: 6, attack: 1.6, exp: 6 },
+    scale: 1.35,
+    cycleMs: 30 * 60 * 1000,
+  },
+  {
+    id: "elite-bandit",
+    monsterId: "bandit",
+    mapId: "village",
+    name: "Sơn Tặc Đầu Lĩnh",
+    point: { x: 24, y: 23 },
+    multipliers: { hp: 6, attack: 1.6, exp: 6 },
+    scale: 1.35,
+    cycleMs: 30 * 60 * 1000,
+  },
+];
+/**
+ * Thành tựu: điều kiện đọc từ bộ đếm hoặc từ trạng thái sẵn có của nhân vật.
+ * `kind: "counter"` đọc `CharacterProgress.achievements.counters`,
+ * `kind: "state"` suy ra từ chính snapshot (cấp, bạc, khu vực, nhiệm vụ).
+ */
+export interface AchievementDefinition {
+  id: string;
+  name: string;
+  description: string;
+  kind: "counter" | "state";
+  /** Với `counter`: khóa trong bộ đếm. Với `state`: tên chỉ số suy ra. */
+  source: "kills" | "wolfKills" | "peakGold" | "enhancementSuccess" | "level" | "gold" | "maps" | "quests";
+  threshold: number;
+  reward: number;
+}
+export const achievements: AchievementDefinition[] = [
+  {
+    id: "first-steps",
+    name: "Sơ Nhập Giang Hồ",
+    description: "Đạt cấp 5.",
+    kind: "state",
+    source: "level",
+    threshold: 5,
+    reward: 50,
+  },
+  {
+    id: "young-hero",
+    name: "Tiểu Hiệp Thành Danh",
+    description: "Đạt cấp 10.",
+    kind: "state",
+    source: "level",
+    threshold: 10,
+    reward: 150,
+  },
+  {
+    id: "evil-bane",
+    name: "Trừ Gian",
+    description: "Hạ tổng cộng 50 quái.",
+    kind: "counter",
+    source: "kills",
+    threshold: 50,
+    reward: 50,
+  },
+  {
+    id: "evil-slayer",
+    name: "Diệt Ác",
+    description: "Hạ tổng cộng 200 quái.",
+    kind: "counter",
+    source: "kills",
+    threshold: 200,
+    reward: 150,
+  },
+  {
+    id: "wolf-hunter",
+    name: "Săn Sói",
+    description: "Hạ tổng cộng 20 Lang vương (tính cả Lang Vương Tinh Anh).",
+    kind: "counter",
+    source: "wolfKills",
+    threshold: 20,
+    reward: 100,
+  },
+  {
+    id: "wealthy",
+    name: "Phú Hộ",
+    description: "Từng sở hữu 1.000 bạc cùng lúc.",
+    kind: "counter",
+    source: "peakGold",
+    threshold: 1000,
+    reward: 50,
+  },
+  {
+    id: "rich",
+    name: "Đại Phú",
+    description: "Từng sở hữu 5.000 bạc cùng lúc.",
+    kind: "counter",
+    source: "peakGold",
+    threshold: 5000,
+    reward: 200,
+  },
+  {
+    id: "wanderer",
+    name: "Hành Giả",
+    description: "Khám phá đủ 6 khu vực.",
+    kind: "state",
+    source: "maps",
+    threshold: 6,
+    reward: 150,
+  },
+  {
+    id: "apprentice-smith",
+    name: "Thợ Rèn Tập Sự",
+    description: "Cường hóa thành công 1 lần tại Công xưởng.",
+    kind: "counter",
+    source: "enhancementSuccess",
+    threshold: 1,
+    reward: 50,
+  },
+  {
+    id: "first-quest",
+    name: "Nhiệm Vụ Đầu Tiên",
+    description: "Hoàn thành 1 nhiệm vụ bất kỳ.",
+    kind: "state",
+    source: "quests",
+    threshold: 1,
+    reward: 50,
+  },
+];
 export const assetManifest = {
   version: 1,
   license: "Original procedural artwork — Kiếm Hiệp Web",
@@ -2295,6 +2489,26 @@ export function validateContent(): string[] {
     )
       errors.push(`Quest không hợp lệ: ${q.id}`);
   }
+  for (const elite of elites) {
+    const map = maps.find((m) => m.id === elite.mapId);
+    if (
+      !monsters.some((m) => m.id === elite.monsterId) ||
+      !map ||
+      elite.multipliers.hp <= 0 ||
+      elite.multipliers.attack <= 0 ||
+      elite.multipliers.exp <= 0 ||
+      elite.cycleMs <= 0 ||
+      elite.point.x < 1 ||
+      elite.point.y < 1 ||
+      elite.point.x >= map.width - 1 ||
+      elite.point.y >= map.height - 1 ||
+      map.blocked.some((b) => b.x === elite.point.x && b.y === elite.point.y)
+    )
+      errors.push(`Tinh anh không hợp lệ: ${elite.id}`);
+  }
+  for (const a of achievements)
+    if (a.threshold <= 0 || a.reward < 0)
+      errors.push(`Thành tựu không hợp lệ: ${a.id}`);
   for (const m of maps) {
     const zoneIds = new Set<string>();
     for (const zone of m.spawnZones ?? []) {
@@ -2392,7 +2606,11 @@ export function validateContent(): string[] {
       (q.objectiveKind === "explore" &&
         !maps.some(
           (m) => m.id === q.target || m.areas?.some((a) => a.id === q.target),
-        ))
+        )) ||
+      (q.objectiveKind === "talk" &&
+        !npcs.some((n) => n.id === q.target)) ||
+      (q.objectiveKind === "equip" &&
+        !items.some((i) => i.id === q.target))
     )
       errors.push(`Objective sai: ${q.id}`);
     const seen = new Set<string>();

@@ -1,6 +1,11 @@
 import { CharacterPortrait, ResourceBar, StatusStrip } from "../ui/GameUI";
 import { LootNoticeWindow } from "../ui/loot-notices";
 import { questNavigation } from "../ui/quest-navigation";
+import {
+  questDisplays as questDisplayList,
+  questStepLabel,
+  trackedQuest,
+} from "../ui/quest-progress";
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import {
   UserRound,
@@ -17,6 +22,7 @@ import {
   VolumeX,
   BookOpen,
   ShieldCheck,
+  Shield,
   Compass,
   MessageSquare,
   Send,
@@ -29,6 +35,9 @@ import {
   X,
   RotateCw,
   Smartphone,
+  Archive,
+  ChevronLeft,
+  Trophy,
 } from "lucide-react";
 import type {
   GameSession,
@@ -51,8 +60,8 @@ import {
   getMap,
   skills,
   quests,
+  npcs,
   validateContent,
-  questObjectiveLabel,
   worldTime,
   getItem,
 } from "@kiem-hiep/game-content";
@@ -85,12 +94,14 @@ const initialLogs: Log[] = [
   },
   { id: -1, type: "guide", text: "Gặp Lão trưởng thôn để bắt đầu hành trình." },
 ];
-const navigation: [PanelName, string, typeof UserRound, string][] = [
+
+const quickActions: [PanelName, string, typeof UserRound, string, string?][] = [
   ["character", "Nhân vật", UserRound, "C"],
   ["inventory", "Hành trang", Backpack, "I"],
   ["skills", "Võ học", Swords, "K"],
   ["quests", "Nhiệm vụ", ScrollText, "J"],
   ["map", "Bản đồ", Map, "M"],
+  ["warehouse", "Kho đồ", Archive, "", "Mở kho đồ"],
 ];
 export default function App() {
   const { portraitBlocked, enterLandscape } = useLandscapeMode();
@@ -102,7 +113,7 @@ export default function App() {
     [logs, setLogs] = useState<Log[]>(initialLogs),
     [logTab, setLogTab] = useState("all"),
     [note, setNote] = useState(""),
-    [toast, setToast] = useState(""),
+    [toasts, setToasts] = useState<string[]>([]),
     [records, setRecords] = useState<SaveRecord[]>([]),
     [slotIssues, setSlotIssues] = useState<SaveSlotIssue[]>([]),
     [saveStatus, setSaveStatus] = useState("Đang tải tiến trình…"),
@@ -118,7 +129,17 @@ export default function App() {
     [questCollapsed, setQuestCollapsed] = useState(() => innerWidth < 1000),
     [miniExpanded, setMiniExpanded] = useState(false),
     [saveNotice, setSaveNotice] = useState(false),
-    [compactHud, setCompactHud] = useState(false);
+    [compactHud, setCompactHud] = useState(false),
+    [quickCollapsed, setQuickCollapsed] = useState(false),
+    // C3: số FPS hiển thị lấy từ cùng nguồn `diagnostics`, cập nhật tối đa
+    // 2 lần/giây để không nhảy loạn.
+    [fpsText, setFpsText] = useState("0"),
+    [showFps, setShowFps] = useState(() => getPreferences().showFps),
+    // C1.2: mốc lần xuất bản lưu gần nhất (lưu ở localStorage, không theo nhân vật).
+    [lastExportAt, setLastExportAt] = useState<number | null>(() => {
+      const raw = Number(localStorage.getItem("kiem-hiep-last-export") ?? "");
+      return Number.isFinite(raw) && raw > 0 ? raw : null;
+    });
   const [diagnostics, setDiagnostics] = useState<{
     fps: number;
     renderMs: number;
@@ -141,6 +162,11 @@ export default function App() {
     lastMap = useRef(""),
     importInput = useRef<HTMLInputElement>(null),
     logList = useRef<HTMLDivElement>(null);
+  /** Bộ hiển thị đang chạy, để áp giới hạn khung hình ngay khi đổi (C3). */
+  const gameRef = useRef<{
+    destroy(removeCanvas: boolean): void;
+    setFpsLimit?(fps: number): void;
+  } | null>(null);
   const portraitRef = useRef(portraitBlocked);
   const orientationPause = useRef<{
     session: GameSession;
@@ -149,14 +175,18 @@ export default function App() {
   portraitRef.current = portraitBlocked;
   panelRef.current = panel;
   sessionRef.current = session;
+  /**
+   * Hàng đợi thông báo nổi. Giữ tối đa 3 dòng để nhiều nhiệm vụ tăng tiến độ
+   * cùng lúc (nhiều nhiệm vụ cùng loại quái) đều hiện được, không đè nhau.
+   */
   const notify = useCallback((text: string) => {
-    setToast(text);
+    setToasts((previous) => [...previous, text].slice(-3));
   }, []);
   useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(""), 4500);
+    if (!toasts.length) return;
+    const t = setTimeout(() => setToasts((p) => p.slice(1)), 4500);
     return () => clearTimeout(t);
-  }, [toast]);
+  }, [toasts]);
   useEffect(() => {
     let cancelled = false;
     async function init() {
@@ -165,9 +195,34 @@ export default function App() {
         if (contentErrors.length) throw new Error(contentErrors.join("; "));
         const slots = await repository.listSlots();
         const list = slots.records;
+        // C1.1: bản lưu chính lỗi/không đọc được → tự khôi phục từ bản dự
+        // phòng mới nhất còn đọc được và báo mốc thời gian cho người chơi.
+        for (const issue of slots.issues) {
+          if (!issue.hasBackup) continue;
+          try {
+            const at = await repository.backupSavedAt(issue.characterId),
+              recovered = await repository.recover(issue.characterId);
+            if (!recovered) continue;
+            await repository.save(recovered);
+            list.push({
+              saveId: `save:${recovered.characterId}`,
+              characterId: recovered.characterId,
+              snapshot: recovered,
+              savedAt: Date.now(),
+            });
+            const when = at
+              ? new Date(at).toLocaleString("vi-VN")
+              : "không rõ thời điểm";
+            notify(
+              `Bản lưu của ${recovered.name} bị lỗi. Đã khôi phục từ bản dự phòng ${when}.`,
+            );
+          } catch {
+            /* Giữ nguyên issue để người chơi tự phục hồi nếu bản dự phòng cũng lỗi. */
+          }
+        }
         if (cancelled) return;
         setRecords(list);
-        setSlotIssues(slots.issues);
+        setSlotIssues(slots.issues.filter((i) => !list.some((r) => r.characterId === i.characterId)));
         if (list[0]) setRecoveryId(list[0].characterId);
         setEntryReady(true);
         setSaveStatus("Chọn nhân vật để bắt đầu");
@@ -252,6 +307,7 @@ export default function App() {
           "loot",
           "level",
           "map",
+          "quest",
           "dialogue",
           "craft",
           "resource",
@@ -279,6 +335,19 @@ export default function App() {
         }
         if (e.type === "error") notify(e.text);
         if (e.type === "level") notify(e.text);
+        // Thông báo nổi khi tiến độ nhiệm vụ tăng: "Sơn tặc 2/5".
+        if (e.type === "quest") notify(e.text);
+        // B3.4: "Đạt thành tựu: ..." dùng lại hàng đợi thông báo nổi sẵn có
+        // nên nhiều thành tựu cùng lúc sẽ hiện lần lượt, không dồn.
+        // B2.3/B2.4: sự xuất hiện và chiến lợi phẩm của tinh anh cũng là dòng
+        // hệ thống nổi bật — nhận ra qua id `elite:` có sẵn trong sự kiện.
+        if (
+          e.type === "message" &&
+          (e.text.startsWith("Đạt thành tựu:") ||
+            e.entityId?.startsWith("elite:") ||
+            e.targetId?.startsWith("elite:"))
+        )
+          notify(e.text);
         if (
           e.type === "craft" ||
           e.type === "equipment" ||
@@ -318,12 +387,11 @@ export default function App() {
   useEffect(() => {
     if (!session || !host.current) return;
     let cancelled = false;
-    let game: { destroy: (removeCanvas: boolean) => void } | undefined;
     setLoading(true);
     import("../game/bootstrap")
       .then(({ bootGame }) => {
         if (cancelled || !host.current) return;
-        game = bootGame(
+        gameRef.current = bootGame(
           host.current,
           session,
           () => !!panelRef.current || portraitRef.current,
@@ -337,13 +405,61 @@ export default function App() {
       .catch((e) => setError(`Không khởi tạo được bản đồ: ${String(e)}`));
     return () => {
       cancelled = true;
-      game?.destroy(true);
+      gameRef.current?.destroy(true);
+      gameRef.current = null;
     };
   }, [session]);
+  // C3: đổi giới hạn khung hình áp dụng ngay, không tải lại, không mất trạng thái.
+  useEffect(() => {
+    if (!snapshot) return;
+    gameRef.current?.setFpsLimit?.(snapshot.settings.fps);
+  }, [snapshot?.settings.fps]);
+  // A1.2.a: mở hội thoại/shop thì tự chiến tạm dừng ngầm, không tự tắt.
+  useEffect(() => {
+    const current = sessionRef.current;
+    if (!current) return;
+    current.sendCommand({
+      type: "autoCombatPaused",
+      paused: panel === "dialogue" || panel === "activities",
+    });
+  }, [panel, session]);
   useEffect(() => {
     if (logList.current)
       logList.current.scrollTop = logList.current.scrollHeight;
   }, [logs]);
+  // C3: theo dõi preference "Hiện FPS" và cập nhật số tối đa 2 lần/giây.
+  useEffect(() => {
+    const sync = () => {
+      const pref = getPreferences();
+      setShowFps(pref.showFps);
+      // Đẩy cấu hình tự chiến ở cài đặt chung xuống simulation (A1.7).
+      const auto = pref.autoCombat,
+        current = sessionRef.current;
+      if (current)
+        current.sendCommand({
+          type: "configureAuto",
+          settings: {
+            hpThreshold: auto.hpThreshold,
+            mpThreshold: auto.mpThreshold,
+            potions: auto.hpThreshold > 0 || auto.mpThreshold > 0,
+            skills: auto.useSkills,
+            autoPickup: auto.autoPickup,
+            pickup: auto.autoPickup,
+          },
+        });
+    };
+    sync();
+    window.addEventListener("kiem-hiep-preferences", sync);
+    return () => window.removeEventListener("kiem-hiep-preferences", sync);
+  }, [session]);
+  useEffect(() => {
+    if (!showFps) return;
+    const timer = setInterval(() => {
+      const fps = diagnostics?.fps;
+      if (typeof fps === "number") setFpsText(String(Math.round(fps)));
+    }, 500);
+    return () => clearInterval(timer);
+  }, [showFps, diagnostics?.fps]);
   const send = useCallback((command: GameCommand) => {
     if (portraitRef.current) return;
     unlockAudio();
@@ -396,6 +512,13 @@ export default function App() {
           );
         if (item) send({ type: "useItem", instanceId: item.id });
         else notify("Bạn đã hết đan dược này.");
+      }
+      // A1.1: phím F bật/tắt tự chiến (phím còn trống trong bảng phím Cẩm nang).
+      if (e.key.toLowerCase() === "f") {
+        e.preventDefault();
+        const current = sessionRef.current?.getSnapshot();
+        const player = current?.entities[current.playerId];
+        send({ type: "autoAttack", enabled: !player?.autoAttack });
       }
     };
     window.addEventListener("keydown", handler);
@@ -489,11 +612,25 @@ export default function App() {
         type: "application/json",
       }),
       url = URL.createObjectURL(blob),
-      a = document.createElement("a");
+      a = document.createElement("a"),
+      now = new Date(),
+      stamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(
+        now.getDate(),
+      ).padStart(2, "0")}-${String(now.getHours()).padStart(2, "0")}${String(
+        now.getMinutes(),
+      ).padStart(2, "0")}`;
     a.href = url;
-    a.download = `kiem-hiep-${snapshot?.name}.json`;
+    // C1.3: <tên nhân vật>-<ngày giờ xuất>.json, vẫn là JSON nhập lại được.
+    a.download = `${snapshot?.name ?? "nhan-vat"}-${stamp}.json`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
+    const at = Date.now();
+    try {
+      localStorage.setItem("kiem-hiep-last-export", String(at));
+    } catch {
+      /* Không lưu được mốc nhắc nhở thì bỏ qua, không ảnh hưởng bản lưu. */
+    }
+    setLastExportAt(at);
     notify("Đã xuất bản lưu.");
   }
   async function readImport(file: File | undefined) {
@@ -605,6 +742,16 @@ export default function App() {
           onSelect={selectCharacter}
           onDelete={deleteCharacter}
         />
+        {toasts.length > 0 && (
+          <div className="toast-stack" role="status" aria-live="polite">
+            {toasts.map((text, index) => (
+              <div className="toast" key={`${index}-${text}`}>
+                <Leaf size={16} />
+                {text}
+              </div>
+            ))}
+          </div>
+        )}
       </main>
     );
   if (!snapshot || !session)
@@ -621,11 +768,11 @@ export default function App() {
     map = getMap(s.mapId),
     school = classDefinitions.find((c) => c.id === s.classId)!,
     area = map.areas?.find((a) => distance(player, a) < a.radius),
-    activeQuest = s.quests.find((q) => q.status !== "claimed"),
-    quest =
-      quests.find((q) => q.id === activeQuest?.id) ??
-      quests.find((q) => !s.quests.some((p) => p.id === q.id)) ??
-      quests[2];
+    // Nguồn tiến độ duy nhất: khung theo dõi và panel Nhiệm vụ cùng đọc.
+    questDisplays = questDisplayList(s),
+    tracked = trackedQuest(questDisplays),
+    activeQuest = tracked?.progress ?? null,
+    quest = tracked?.definition ?? quests[0];
   const allQuestsDone =
     s.quests.length === quests.length &&
     s.quests.every((q) => q.status === "claimed");
@@ -660,59 +807,141 @@ export default function App() {
       />
       {loading && <div className="world-loading">Đang dựng bản đồ…</div>}
       <nav className="hud-actions" aria-label="Menu gameplay">
-        <span
-          className="offline-status"
-          title={
-            offlineReady ? "Sẵn sàng offline" : "Đang chuẩn bị cache offline"
-          }
+        <div
+          className={`hud-quick-access ${quickCollapsed ? "collapsed" : ""}`}
+          role="toolbar"
+          aria-label="Truy cập nhanh"
         >
-          <i className={offlineReady ? "ready" : ""} />
-          <span className="sr-only">
-            {offlineReady ? "Sẵn sàng offline" : "Đang chuẩn bị cache"}
+          <button
+            type="button"
+            className="hud-quick-toggle"
+            aria-label={
+              quickCollapsed
+                ? "Mở rộng thanh truy cập nhanh"
+                : "Thu gọn thanh truy cập nhanh"
+            }
+            aria-expanded={!quickCollapsed}
+            onClick={() => setQuickCollapsed(!quickCollapsed)}
+            title={
+              quickCollapsed
+                ? "Mở rộng thanh truy cập nhanh"
+                : "Thu gọn thanh truy cập nhanh"
+            }
+          >
+            {quickCollapsed ? (
+              <ChevronLeft size={16} />
+            ) : (
+              <ChevronRight size={16} />
+            )}
+          </button>
+          <div className="hud-quick-buttons">
+            {quickActions.map(
+              ([panelKey, label, Icon, shortcut, customAria]) => (
+                <button
+                  key={panelKey}
+                  type="button"
+                  className={`hud-button hud-quick-button ${panel === panelKey ? "active" : ""}`}
+                  data-quick-action={panelKey}
+                  aria-label={customAria ?? label}
+                  aria-pressed={panel === panelKey}
+                  title={`${label}${shortcut ? ` (Phím ${shortcut})` : ""}`}
+                  onClick={() => togglePanel(panelKey)}
+                >
+                  <Icon size={18} />
+                  <span className="hud-quick-label">{label}</span>
+                  {shortcut && <kbd className="hud-quick-key">{shortcut}</kbd>}
+                </button>
+              ),
+            )}
+          </div>
+        </div>
+
+        <div className="hud-divider" aria-hidden="true" />
+
+        <div
+          className="hud-system-actions"
+          role="toolbar"
+          aria-label="Tiện ích hệ thống"
+        >
+          <span
+            className="offline-status"
+            title={
+              offlineReady ? "Sẵn sàng offline" : "Đang chuẩn bị cache offline"
+            }
+          >
+            <i className={offlineReady ? "ready" : ""} />
+            <span className="sr-only">
+              {offlineReady ? "Sẵn sàng offline" : "Đang chuẩn bị cache"}
+            </span>
           </span>
-        </span>
-        <button
-          className="save-state hud-button"
-          onClick={() => void save()}
-          title={saveStatus}
-          aria-label="Lưu tiến trình"
-        >
-          <ShieldCheck size={18} />
-          <span className="sr-only">{saveStatus}</span>
-        </button>
-        <button
-          className="hud-button"
-          aria-label={
-            compactHud ? "Hiện đầy đủ giao diện" : "Thu gọn giao diện"
-          }
-          aria-pressed={compactHud}
-          onClick={() => setCompactHud(!compactHud)}
-        >
-          {compactHud ? <Eye size={18} /> : <EyeOff size={18} />}
-        </button>
-        <button
-          className="hud-button"
-          aria-label="Thu phóng bản đồ nhỏ"
-          aria-expanded={miniExpanded}
-          onClick={() => setMiniExpanded(!miniExpanded)}
-        >
-          <Map size={18} />
-        </button>
-        <button
-          className="hud-button"
-          aria-label="Thiết lập"
-          onClick={() => togglePanel("settings")}
-        >
-          <Settings size={18} />
-        </button>
-        <button
-          className="hud-button"
-          aria-label="Mở menu"
-          aria-expanded={mobileMenu}
-          onClick={() => setMobileMenu(!mobileMenu)}
-        >
-          <Menu size={20} />
-        </button>
+          <button
+            className={`hud-button ${player.autoAttack ? "active" : ""}`}
+            onClick={() =>
+              send({ type: "autoAttack", enabled: !player.autoAttack })
+            }
+            onContextMenu={(e) => {
+              e.preventDefault();
+              togglePanel("autoCombat");
+            }}
+            title={`Tự chiến: ${player.autoAttack ? "Bật" : "Tắt"} · Phím F · Chuột phải để cấu hình`}
+            aria-label="Tự chiến"
+            aria-pressed={player.autoAttack}
+            data-auto-combat={player.autoAttack ? "on" : "off"}
+          >
+            <Shield size={18} />
+            <span className="sr-only">
+              Tự chiến {player.autoAttack ? "bật" : "tắt"}
+            </span>
+          </button>
+          <button
+            className="save-state hud-button"
+            onClick={() => void save()}
+            title={saveStatus}
+            aria-label="Lưu tiến trình"
+          >
+            <ShieldCheck size={18} />
+            <span className="sr-only">{saveStatus}</span>
+          </button>
+          <button
+            className="hud-button"
+            aria-label={
+              compactHud ? "Hiện đầy đủ giao diện" : "Thu gọn giao diện"
+            }
+            aria-pressed={compactHud}
+            onClick={() => setCompactHud(!compactHud)}
+            title={
+              compactHud ? "Hiện đầy đủ giao diện" : "Thu gọn giao diện"
+            }
+          >
+            {compactHud ? <Eye size={18} /> : <EyeOff size={18} />}
+          </button>
+          <button
+            className="hud-button"
+            aria-label="Thu phóng bản đồ nhỏ"
+            aria-expanded={miniExpanded}
+            onClick={() => setMiniExpanded(!miniExpanded)}
+            title="Thu phóng bản đồ nhỏ"
+          >
+            <Map size={18} />
+          </button>
+          <button
+            className="hud-button"
+            aria-label="Thiết lập"
+            onClick={() => togglePanel("settings")}
+            title="Thiết lập"
+          >
+            <Settings size={18} />
+          </button>
+          <button
+            className="hud-button"
+            aria-label="Mở menu"
+            aria-expanded={mobileMenu}
+            onClick={() => setMobileMenu(!mobileMenu)}
+            title="Mở menu"
+          >
+            <Menu size={20} />
+          </button>
+        </div>
       </nav>
       {saveNotice && (
         <div className="save-notice" role="status">
@@ -859,28 +1088,31 @@ export default function App() {
               <div className="quest-chapter">
                 <span>CHÍNH TUYẾN</span>
                 <span>
-                  CHƯƠNG{" "}
-                  {quest.id === "bandits"
-                    ? "I"
-                    : quest.id === "wolves"
-                      ? "II"
-                      : "III"}
+                  {allQuestsDone ? "HOÀN TẤT" : `NHIỆM VỤ ${tracked?.order ?? "--"}`}
                 </span>
               </div>
               <h3>
-                <i /> {allQuestsDone ? "Giang hồ thái bình" : quest.name}
+                <i />{" "}
+                {allQuestsDone ? "Giang hồ thái bình" : quest.name}
               </h3>
               <p>
                 {allQuestsDone
                   ? "Ba chương đã khép lại. Hãy tiếp tục khám phá và rèn luyện võ học."
-                  : activeQuest
-                    ? activeQuest.status === "ready"
+                  : tracked
+                    ? tracked.ready
                       ? "Trở về gặp Lão trưởng thôn để nhận thưởng."
-                      : quest.description
+                      : tracked.progress
+                        ? tracked.objective
+                        : `Gặp ${npcs.find((n) => n.id === tracked.definition.npc)?.name ?? "Lão trưởng thôn"} để nhận nhiệm vụ.`
                     : "Gặp Lão trưởng thôn để nhận nhiệm vụ đầu tiên."}
               </p>
               <button
                 className="quest-objective"
+                data-quest-id={quest.id}
+                data-quest-status={activeQuest?.status ?? "none"}
+                data-quest-progress={
+                  tracked?.progress ? `${tracked.current}/${tracked.count}` : ""
+                }
                 onClick={() => {
                   if (allQuestsDone) togglePanel("character");
                   else {
@@ -894,15 +1126,15 @@ export default function App() {
                 <span>
                   {allQuestsDone
                     ? "Tiếp tục luyện võ"
-                    : activeQuest
-                      ? activeQuest.status === "ready"
+                    : tracked
+                      ? tracked.ready
                         ? "Trở về báo tin"
-                        : questObjectiveLabel(quest)
+                        : questStepLabel(tracked)
                       : "Nói chuyện với trưởng thôn"}
                 </span>
                 <b>
-                  {activeQuest && activeQuest.status !== "ready" ? (
-                    `${activeQuest.progress}/${quest.count}`
+                  {tracked && tracked.progress && !tracked.ready ? (
+                    `${tracked.current}/${tracked.count}`
                   ) : (
                     <ChevronRight size={12} />
                   )}
@@ -941,12 +1173,18 @@ export default function App() {
           </button>
           <button
             className={player.autoAttack ? "active" : ""}
-            onClick={() =>
-              send({ type: "autoAttack", enabled: !player.autoAttack })
-            }
+            aria-label="Tự chiến"
+            aria-pressed={player.autoAttack}
+            title={`Tự chiến: ${player.autoAttack ? "Bật" : "Tắt"} · Phím F · Giữ chuột phải để mở cấu hình`}
+            data-auto-combat={player.autoAttack ? "on" : "off"}
+            onClick={() => send({ type: "autoAttack", enabled: !player.autoAttack })}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              togglePanel("autoCombat");
+            }}
           >
-            <Swords size={19} />
-            <span>{player.autoAttack ? "Đang tự đánh" : "Tự chiến"}</span>
+            <Shield size={19} />
+            <span>{player.autoAttack ? "Đang tự chiến" : "Tự chiến"}</span>
           </button>
         </div>
       </aside>
@@ -1252,13 +1490,27 @@ export default function App() {
         BẢN OFFLINE <span>·</span> v0.5.0
       </div>
       {mobileMenu && (
-        <nav className="mobile-menu" aria-label="Chức năng giang hồ">
+        <nav
+          className={`mobile-menu ${miniExpanded ? "minimap-is-expanded" : ""}`}
+          aria-label="Chức năng giang hồ"
+        >
           <div className="hud-menu-heading">
             <strong>Giang Hồ Ký</strong>
-            <span>
-              <Coins size={14} />
-              {s.gold.toLocaleString("vi-VN")} bạc
-            </span>
+            <div className="hud-menu-heading-right">
+              <span>
+                <Coins size={14} />
+                {s.gold.toLocaleString("vi-VN")} bạc
+              </span>
+              <button
+                type="button"
+                className="hud-menu-close"
+                onClick={() => setMobileMenu(false)}
+                aria-label="Đóng menu"
+                title="Đóng menu"
+              >
+                <X size={16} />
+              </button>
+            </div>
           </div>
           {updateAvailable && (
             <button
@@ -1272,34 +1524,148 @@ export default function App() {
               Cập nhật game
             </button>
           )}
-          <button
-            onClick={() =>
-              send({ type: "settings", settings: { sound: !s.settings.sound } })
-            }
+
+          <div
+            className="menu-group"
+            role="group"
+            aria-label="Nhân vật và vật phẩm"
           >
-            {s.settings.sound ? <Volume2 size={20} /> : <VolumeX size={20} />}{" "}
-            {s.settings.sound ? "Tắt âm thanh" : "Bật âm thanh"}
-          </button>
-          {[
-            ...navigation,
-            ["settings", "Thiết lập", Settings, ""],
-            ["characters", "Nhân vật khác", UserRound, ""],
-            ["guide", "Cẩm nang", BookOpen, ""],
-            ["workshop", "Công xưởng", Swords, ""],
-            ["warehouse", "Kho đồ", Backpack, ""],
-            ["activities", "Nghề nghiệp", Leaf, ""],
-          ].map(([name, label, Icon]) => {
-            const C = Icon as typeof UserRound;
-            return (
+            <div className="menu-group-title">Nhân vật &amp; Vật phẩm</div>
+            <div className="menu-group-grid grid-4">
               <button
-                key={String(name)}
-                onClick={() => togglePanel(name as PanelName)}
+                type="button"
+                onClick={() => togglePanel("character")}
               >
-                <C size={20} />
-                {String(label)}
+                <UserRound size={20} />
+                <span>Nhân vật</span>
               </button>
-            );
-          })}
+              <button
+                type="button"
+                onClick={() => togglePanel("inventory")}
+              >
+                <Backpack size={20} />
+                <span>Hành trang</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => togglePanel("warehouse")}
+              >
+                <Archive size={20} />
+                <span>Kho đồ</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => togglePanel("characters")}
+              >
+                <UserRound size={20} />
+                <span>Nhân vật khác</span>
+              </button>
+            </div>
+          </div>
+
+          <div
+            className="menu-group"
+            role="group"
+            aria-label="Chiến đấu và phát triển"
+          >
+            <div className="menu-group-title">Chiến đấu &amp; Phát triển</div>
+            <div className="menu-group-grid grid-4">
+              <button
+                type="button"
+                onClick={() => togglePanel("skills")}
+              >
+                <Swords size={20} />
+                <span>Võ học</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => togglePanel("activities")}
+              >
+                <Leaf size={20} />
+                <span>Nghề nghiệp</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => togglePanel("workshop")}
+              >
+                <Swords size={20} />
+                <span>Công xưởng</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => togglePanel("achievements")}
+              >
+                <Trophy size={20} />
+                <span>Thành tựu</span>
+              </button>
+            </div>
+          </div>
+
+          <div
+            className="menu-group"
+            role="group"
+            aria-label="Khám phá và thông tin"
+          >
+            <div className="menu-group-title">Khám phá &amp; Thông tin</div>
+            <div className="menu-group-grid grid-3">
+              <button
+                type="button"
+                onClick={() => togglePanel("quests")}
+              >
+                <ScrollText size={20} />
+                <span>Nhiệm vụ</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => togglePanel("map")}
+              >
+                <Map size={20} />
+                <span>Bản đồ</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => togglePanel("guide")}
+              >
+                <BookOpen size={20} />
+                <span>Cẩm nang</span>
+              </button>
+            </div>
+          </div>
+
+          <div
+            className="menu-group"
+            role="group"
+            aria-label="Hệ thống"
+          >
+            <div className="menu-group-title">Hệ thống</div>
+            <div className="menu-group-grid grid-2">
+              <button
+                type="button"
+                onClick={() =>
+                  send({
+                    type: "settings",
+                    settings: { sound: !s.settings.sound },
+                  })
+                }
+              >
+                {s.settings.sound ? (
+                  <Volume2 size={20} />
+                ) : (
+                  <VolumeX size={20} />
+                )}{" "}
+                <span>
+                  {s.settings.sound ? "Tắt âm thanh" : "Bật âm thanh"}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => togglePanel("settings")}
+              >
+                <Settings size={20} />
+                <span>Thiết lập</span>
+              </button>
+            </div>
+          </div>
         </nav>
       )}
       {panel && (
@@ -1318,6 +1684,8 @@ export default function App() {
           onExport={exportSave}
           onImport={() => importInput.current?.click()}
           onSave={() => void save()}
+          lastSavedAt={records.find((r) => r.characterId === s.characterId)?.savedAt}
+          lastExportAt={lastExportAt}
           onCreate={(n, c, a) => void createCharacter(n, c, a)}
           onSelect={(id) => void selectCharacter(id)}
           onDelete={(id) => void deleteCharacter(id)}
@@ -1331,10 +1699,19 @@ export default function App() {
           </button>
         </div>
       )}
-      {toast && (
-        <div className="toast" role="status">
-          <Leaf size={16} />
-          {toast}
+      {toasts.length > 0 && (
+        <div className="toast-stack" role="status" aria-live="polite">
+          {toasts.map((text, index) => (
+            <div className="toast" key={`${index}-${text}`}>
+              <Leaf size={16} />
+              {text}
+            </div>
+          ))}
+        </div>
+      )}
+      {showFps && (
+        <div className="fps-counter" role="status" aria-live="off">
+          {fpsText} FPS
         </div>
       )}
       {player.hp <= 0 && (

@@ -51,5 +51,26 @@ describe("IndexedDB thực hiện giao dịch nguyên tử", () => {
     s.inventory.pop();
     s.quests.push({ id: "missing", status: "ready", progress: 0 });
     expect(() => validateSave(s)).toThrow();
+    s.quests.pop();
+    expect(() => validateSave(s)).not.toThrow();
+  });
+  it("bản lưu cũ thiếu questTalks vẫn nạp được, không xóa nhân vật", () => {
+    const s = createGame("KiemKhach01", "wudang", "KiemKhach01");
+    s.quests.push({ id: "bandits", status: "active", progress: 2, completions: 0 });
+    // Bản lưu cũ (trước khi thêm trường questTalks) không có trường này.
+    delete (s as { questTalks?: unknown }).questTalks;
+    const valid = validateSave(s);
+    expect(valid.quests[0].progress).toBe(2);
+    expect(valid.questTalks).toBeUndefined();
+  });
+  it("lưu/load giữ nguyên tiến độ nhiệm vụ và questTalks", async () => {
+    const repo = new SaveRepository(),
+      s = createGame("QATest123", "wudang", "QATest123");
+    s.quests.push({ id: "bandits", status: "active", progress: 3, completions: 0 });
+    s.questTalks = { elder: 12 };
+    await repo.save(s);
+    const loaded = (await repo.load("QATest123"))!;
+    expect(loaded.quests[0].progress).toBe(3);
+    expect(loaded.questTalks?.elder).toBe(12);
   });
 });

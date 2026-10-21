@@ -20,6 +20,19 @@ export const slotNames: Record<string, string> = {
   boots: "Giày",
   accessory: "Trang sức",
 };
+/**
+ * Bậc phát sáng theo cấp cường hóa (A4). Chỉ đọc cấp đã có trong dữ liệu
+ * trang bị, không sửa logic cường hóa và không đổi chỉ số.
+ * +0..+4 không sáng; +5/+6 trắng-xanh; +7/+8 xanh dương; +9/+10 tím;
+ * +11 trở lên vàng kim có nhịp.
+ */
+export function enhancementGlowClass(level = 0) {
+  if (level >= 11) return "glow-gold pulse";
+  if (level >= 9) return "glow-violet";
+  if (level >= 7) return "glow-azure";
+  if (level >= 5) return "glow-jade";
+  return "";
+}
 
 /** Shared focus ownership for gameplay windows, independent of simulation. */
 export function GamePanel({
@@ -180,7 +193,7 @@ export function ItemSlot({
     <>
       <button
         ref={anchor}
-        className={`item-slot ${definition?.rarity ?? "empty-slot"} ${selected ? "selected" : ""}`}
+        className={`item-slot ${definition?.rarity ?? "empty-slot"} ${selected ? "selected" : ""} ${enhancementGlowClass(item?.enhancement)}`}
         aria-label={label ?? definition?.name ?? "Ô trống"}
         aria-pressed={selected}
         disabled={disabled}

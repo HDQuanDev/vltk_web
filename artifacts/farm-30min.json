@@ -2,60 +2,60 @@
   "version": "0.5.0",
   "simulationSeconds": 1800,
   "steps": 36000,
-  "kills": 176,
-  "initialLevel": 5,
-  "finalLevel": 9,
-  "initialGold": 1678,
-  "finalGold": 4918,
+  "kills": 382,
+  "initialLevel": 4,
+  "finalLevel": 12,
+  "initialGold": 1596,
+  "finalGold": 9012,
   "checkpoints": [
     {
-      "tick": 2523,
-      "bytes": 31533,
-      "entities": 47,
-      "active": 18,
-      "inactive": 29
+      "tick": 2346,
+      "bytes": 33546,
+      "entities": 49,
+      "active": 15,
+      "inactive": 34
     },
     {
-      "tick": 8523,
-      "bytes": 33164,
-      "entities": 47,
-      "active": 18,
-      "inactive": 29
+      "tick": 8346,
+      "bytes": 34863,
+      "entities": 49,
+      "active": 15,
+      "inactive": 34
     },
     {
-      "tick": 14523,
-      "bytes": 34350,
-      "entities": 47,
-      "active": 18,
-      "inactive": 29
+      "tick": 14346,
+      "bytes": 43924,
+      "entities": 61,
+      "active": 15,
+      "inactive": 39
     },
     {
-      "tick": 20523,
-      "bytes": 35121,
-      "entities": 47,
-      "active": 18,
-      "inactive": 29
+      "tick": 20346,
+      "bytes": 43446,
+      "entities": 61,
+      "active": 15,
+      "inactive": 46
     },
     {
-      "tick": 26523,
-      "bytes": 33360,
-      "entities": 47,
-      "active": 18,
-      "inactive": 29
+      "tick": 26346,
+      "bytes": 45454,
+      "entities": 61,
+      "active": 15,
+      "inactive": 46
     },
     {
-      "tick": 32523,
-      "bytes": 31710,
-      "entities": 47,
-      "active": 18,
-      "inactive": 29
+      "tick": 32346,
+      "bytes": 44402,
+      "entities": 61,
+      "active": 15,
+      "inactive": 46
     }
   ],
   "tickMs": {
-    "p50": 0.09312500000032742,
-    "p95": 0.16462500000034197,
-    "p99": 0.3942910000005213,
-    "max": 17.1120420000002
+    "p50": 0.05349999999998545,
+    "p95": 0.09516699999994671,
+    "p99": 0.16191699999990306,
+    "max": 12.294042000000218
   },
   "grants": false,
   "note": "Accelerated shared-core journey from character creation through three starter quests and real portals into riverlands. Commands allocate earned attributes, equip earned gear, heal with learned MP/cooldown, AUTO with radius12 and pickup. Does not measure rendering or device FPS. Timing includes test runner overhead/GC and is not a deterministic assertion."

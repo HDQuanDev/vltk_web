@@ -68,19 +68,12 @@ for (const width of [1366, 932])
       .getByRole("button", { name: "Nhặt 18 bạc", exact: true })
       .first()
       .click();
-    if (width > 1000) {
-      await page.getByRole("button", { name: "Mở menu", exact: true }).click();
-      await page
-        .getByRole("button", { name: "Nghề nghiệp", exact: true })
-        .click();
-      await page
-        .getByRole("button", { name: "Dừng tự chiến", exact: true })
-        .click();
-      await page
-        .getByRole("button", { name: "Đóng cửa sổ", exact: true })
-        .click();
-    } else
-      await page.getByRole("button", { name: "Tự chiến", exact: true }).click();
+    // Đặc tả A1: click quái chỉ đuổi đánh mục tiêu đó, không bật tự chiến;
+    // nếu tự chiến đang bật thì tắt bằng đúng nút khiên trên thanh HUD.
+    const autoToggle = page.locator("[data-auto-combat]").first();
+    if ((await autoToggle.getAttribute("data-auto-combat")) === "on")
+      await autoToggle.click();
+    await expect(autoToggle).toHaveAttribute("data-auto-combat", "off");
     await page.screenshot({ path: `artifacts/ground-loot-${width}.png` });
     await expect
       .poll(async () => (await snapshot(page)).gold)

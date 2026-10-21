@@ -142,16 +142,13 @@ test("một slot lỗi vẫn chọn được slot lành và phục hồi riêng 
   await expect(
     page.getByRole("region", { name: "Chọn nhân vật", exact: true }),
   ).toBeVisible();
-  await expect(page.getByLabel("Bản lưu cần khôi phục")).toContainText(
-    "Nhân Vật Lỗi",
-  );
+  // Đặc tả C1.1: bản chính lỗi thì tự khôi phục từ bản dự phòng mới nhất và
+  // báo mốc thời gian; slot lỗi không còn chặn danh sách nhân vật.
+  await expect(page.getByLabel("Bản lưu cần khôi phục")).toHaveCount(0);
+  await expect(page.locator(".toast")).toContainText("bản dự phòng");
   await expect(
     page.getByRole("button", { name: "Vào game", exact: true }),
   ).toBeEnabled();
-  await page
-    .getByRole("button", { name: "Khôi phục Nhân Vật Lỗi", exact: true })
-    .click();
-  await expect(page.getByLabel("Bản lưu cần khôi phục")).toHaveCount(0);
   await page
     .locator(".lobby-roster button")
     .filter({ hasText: "Nhân Vật Lỗi" })

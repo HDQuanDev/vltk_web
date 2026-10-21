@@ -334,6 +334,10 @@ export function WorkshopPanel({
                       }.`}{" "}
                   Cấp +3 mở ô ngọc thứ hai.
                 </p>
+                <p className="hint enhance-glow-note">
+                  Từ +5 trang bị bắt đầu phát sáng: trắng-xanh (+5), xanh dương
+                  (+7), tím (+9), vàng kim (+11).
+                </p>
                 <label className="enhance-protect">
                   <input
                     type="checkbox"

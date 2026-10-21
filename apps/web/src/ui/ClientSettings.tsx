@@ -63,6 +63,37 @@ export function ClientSettings() {
           <option value="floating">Nổi tại điểm chạm</option>
         </select>
       </div>
+      <h3 className="section-heading">Hiệu ứng trong game</h3>
+      <div className="setting-row">
+        <label>
+          <input
+            type="checkbox"
+            checked={p.damageNumbers}
+            onChange={(e) => update({ damageNumbers: e.target.checked })}
+          />{" "}
+          Số sát thương
+        </label>
+      </div>
+      <div className="setting-row">
+        <label>
+          <input
+            type="checkbox"
+            checked={p.playerNightLight}
+            onChange={(e) => update({ playerNightLight: e.target.checked })}
+          />{" "}
+          Sáng quanh nhân vật ban đêm
+        </label>
+      </div>
+      <div className="setting-row">
+        <label>
+          <input
+            type="checkbox"
+            checked={p.showFps}
+            onChange={(e) => update({ showFps: e.target.checked })}
+          />{" "}
+          Hiện FPS
+        </label>
+      </div>
       <h3 className="section-heading">Bộ trộn âm thanh</h3>
       {(
         [

@@ -8,8 +8,11 @@ import { SectSkillsPanel } from "./SectSkillsPanel";
 import { WorkshopPanel } from "./WorkshopPanel";
 import { StoragePanel } from "./StoragePanel";
 import { ActivityPanel } from "./ActivityPanel";
+import { AutoCombatPanel } from "./AutoCombatPanel";
+import { AchievementPanel } from "./AchievementPanel";
 import { QuestOffers } from "./QuestOffers";
-import { respecCost } from "@kiem-hiep/game-core";
+import { questDisplays, questStepLabel } from "./quest-progress";
+import { respecCost, TRAVEL_GOLD } from "@kiem-hiep/game-core";
 import { useState, type ReactNode } from "react";
 import {
   X,
@@ -41,10 +44,8 @@ import {
   affixPool,
   classDefinitions,
   getItem,
-  quests,
   maps,
   npcs,
-  questObjectiveLabel,
   equipmentSlots,
   isEquipment,
 } from "@kiem-hiep/game-content";
@@ -63,7 +64,9 @@ export type PanelName =
   | "dialogue"
   | "workshop"
   | "warehouse"
-  | "activities";
+  | "activities"
+  | "autoCombat"
+  | "achievements";
 interface Props {
   panel: PanelName;
   snapshot: GameSnapshot;
@@ -87,6 +90,10 @@ interface Props {
   onExport: () => void;
   onImport: () => void;
   onSave: () => void;
+  /** Mốc thời gian thật của lần lưu gần nhất (ms), null nếu chưa lưu. */
+  lastSavedAt?: number | null;
+  /** Mốc thời gian thật của lần xuất bản lưu gần nhất (ms). */
+  lastExportAt?: number | null;
   records: SaveRecord[];
   onCreate: (
     name: string,
@@ -125,6 +132,8 @@ export function Panels(p: Props) {
     workshop: ["Công xưởng", "RÈN LUYỆN & CHẾ TÁC"],
     warehouse: ["Kho đồ", "GIỮ LẠI HÀNH TRANG GIANG HỒ"],
     activities: ["Sinh hoạt giang hồ", "NGHỀ NGHIỆP & TÀI NGUYÊN"],
+    autoCombat: ["Tự chiến", "TỰ ĐỘNG GIANG HỒ"],
+    achievements: ["Thành tựu", "DẤU ẤN HÀNH TRÌNH"],
     character: ["Nhân vật", "THUỘC TÍNH & TRANG BỊ"],
     inventory: ["Hành trang", "VẬT PHẨM CỦA THIẾU HIỆP"],
     skills: ["Võ học", "LẤY TĨNH CHẾ ĐỘNG"],
@@ -496,40 +505,48 @@ export function Panels(p: Props) {
           {panel === "activities" && (
             <ActivityPanel snapshot={s} send={send} close={close} />
           )}
+          {panel === "autoCombat" && (
+            <AutoCombatPanel snapshot={s} send={send} />
+          )}
+          {panel === "achievements" && (
+            <AchievementPanel snapshot={s} send={send} />
+          )}
           {panel === "quests" && (
             <div className="quest-list">
-              {quests.map((q, i) => {
-                const state = s.quests.find((n) => n.id === q.id),
-                  unlocked =
-                    !q.requires ||
-                    s.quests.some(
-                      (n) => n.id === q.requires && n.status === "claimed",
-                    );
+              {questDisplays(s).map((d) => {
+                const q = d.definition,
+                  state = d.progress;
                 return (
                   <article
-                    className={`quest-detail ${state?.status === "claimed" ? "completed" : ""}`}
+                    className={`quest-detail ${d.claimed ? "completed" : ""}`}
                     key={q.id}
+                    data-quest-id={q.id}
+                    data-quest-order={d.order}
+                    data-quest-status={state?.status ?? "none"}
+                    data-quest-progress={
+                      state ? `${d.current}/${d.count}` : ""
+                    }
                   >
                     <small>{q.chapter}</small>
                     <h3>
-                      <span>0{i + 1}</span>
+                      <span>{d.order}</span>
                       {q.name}
-                      {state?.status === "claimed" && <Check size={18} />}
+                      {d.claimed && <Check size={18} />}
                     </h3>
                     <p>{q.description}</p>
                     <div className="objective">
-                      <span>{questObjectiveLabel(q)}</span>
+                      <span>{questStepLabel(d)}</span>
                       <b>
-                        {state?.progress ?? 0} / {q.count}
+                        {state ? `${d.current} / ${d.count}` : "Chưa nhận"}
                       </b>
                     </div>
                     <div className="quest-rewards">
                       +{q.exp} kinh nghiệm <span>·</span> +{q.gold} bạc{" "}
                       <span>·</span> {getItem(q.rewardItem).name}
                     </div>
-                    {state?.status === "claimed" ? (
+                    {d.claimed ? (
                       <small className="positive">Đã nhận phần thưởng</small>
-                    ) : state?.status === "active" ? (
+                    ) : d.active ? (
                       <button
                         className="outline-button"
                         onClick={() => {
@@ -544,7 +561,7 @@ export function Panels(p: Props) {
                       >
                         Theo dõi mục tiêu <ArrowRight size={14} />
                       </button>
-                    ) : unlocked ? (
+                    ) : d.unlocked ? (
                       <button
                         className="gold-button"
                         onClick={() => {
@@ -553,7 +570,7 @@ export function Panels(p: Props) {
                           if (command) send(command);
                         }}
                       >
-                        {state?.status === "ready"
+                        {d.ready
                           ? "Trở về nhận thưởng"
                           : `Gặp ${npcs.find((n) => n.id === q.npc)?.name ?? q.npc}`}{" "}
                         <ArrowRight size={14} />
@@ -672,8 +689,49 @@ export function Panels(p: Props) {
                   <ChevronRight size={17} />
                 </button>
               ))}
+              <Heading>Dịch chuyển nhanh</Heading>
+              {maps
+                .filter((m) => m.id !== s.mapId)
+                .map((m) => {
+                  const visited = s.visitedMaps.includes(m.id),
+                    readyAt = s.travelReadyAt ?? 0,
+                    cooldown = Math.max(0, Math.ceil((readyAt - Date.now()) / 1000)),
+                    shortGold = s.gold < TRAVEL_GOLD,
+                    blocked = cooldown > 0 || shortGold;
+                  return (
+                    <div className="travel-row" key={`travel:${m.id}`}>
+                      <MapPin size={18} />
+                      <div>
+                        <strong>{m.name}</strong>
+                        <small>
+                          {visited
+                            ? cooldown > 0
+                              ? `Chờ ${cooldown} giây để dịch chuyển lại`
+                              : shortGold
+                                ? `Cần ${TRAVEL_GOLD} bạc để dịch chuyển`
+                                : `Dịch chuyển tức thời · ${TRAVEL_GOLD} bạc`
+                            : "Chưa khám phá"}
+                        </small>
+                      </div>
+                      {visited ? (
+                        <button
+                          className="outline-button"
+                          disabled={blocked}
+                          onClick={() =>
+                            send({ type: "travel", mapId: m.id })
+                          }
+                        >
+                          {cooldown > 0 ? `${cooldown}s` : "Dịch chuyển"}
+                        </button>
+                      ) : (
+                        <small className="muted">Chưa khám phá</small>
+                      )}
+                    </div>
+                  );
+                })}
               <p className="hint">
                 Nhấp vào nền đất để di chuyển. Đến cổng sáng để chuyển khu vực.
+                Dịch chuyển nhanh không dùng được khi đang giao chiến.
               </p>
             </>
           )}
@@ -787,20 +845,22 @@ export function Panels(p: Props) {
               </div>
               <div className="setting-row">
                 <span>
-                  Giới hạn khung hình{" "}
-                  <small>Áp dụng sau khi tải lại game</small>
+                  Giới hạn khung hình
+                  <small>Áp dụng ngay, không cần tải lại</small>
                 </span>
                 <select
+                  aria-label="Giới hạn khung hình"
                   value={s.settings.fps}
                   onChange={(e) =>
                     send({
                       type: "settings",
-                      settings: { fps: Number(e.target.value) as 30 | 60 },
+                      settings: { fps: Number(e.target.value) as 0 | 30 | 60 },
                     })
                   }
                 >
                   <option value="60">60 FPS</option>
                   <option value="30">30 FPS</option>
+                  <option value="0">Không giới hạn</option>
                 </select>
               </div>
               <ClientSettings />
@@ -867,14 +927,32 @@ export function Panels(p: Props) {
               </div>
               <Heading>Tiến trình của bạn</Heading>
               <p className="hint">
-                Tự động lưu mỗi 15 giây và khi đổi bản đồ. Bản lưu trước được
-                giữ dự phòng trong IndexedDB.
+                Tự động lưu mỗi 15 giây và khi đổi bản đồ. Giữ thêm 3 bản dự
+                phòng xoay vòng trong IndexedDB (tối đa 5 phút một bản).
               </p>
+              <p className="hint" data-save-info="true">
+                Lần lưu gần nhất: {formatSaveTime(p.lastSavedAt)}
+                <br />
+                Lần xuất bản lưu gần nhất: {formatSaveTime(p.lastExportAt)}
+              </p>
+              {needsExportReminder(p.lastExportAt) && (
+                <p className="hint export-reminder" role="note">
+                  Nên xuất bản lưu để tránh mất nhân vật khi xóa dữ liệu trình
+                  duyệt.
+                </p>
+              )}
               <div className="save-actions">
                 <button className="gold-button" onClick={p.onSave}>
                   Lưu ngay
                 </button>
-                <button className="outline-button" onClick={p.onExport}>
+                <button
+                  className={
+                    needsExportReminder(p.lastExportAt)
+                      ? "gold-button"
+                      : "outline-button"
+                  }
+                  onClick={p.onExport}
+                >
                   <Download size={15} /> Xuất bản lưu
                 </button>
                 <button className="outline-button" onClick={p.onImport}>
@@ -937,6 +1015,7 @@ export function Panels(p: Props) {
                   ["Q / E", "Dùng đan hồi máu / nội lực"],
                   ["C · I · K", "Nhân vật · Hành trang · Võ học"],
                   ["J · M · Esc", "Nhiệm vụ · Bản đồ · Đóng cửa sổ"],
+                  ["F", "Bật / tắt tự chiến (chuột phải để cấu hình)"],
                 ].map(([key, value]) => (
                   <div key={key}>
                     <kbd>{key}</kbd>
@@ -1086,4 +1165,17 @@ function worldMapPoint(i: number) {
     x: 65 + i * (470 / Math.max(1, maps.length - 1)),
     y: 140 - (i % 2) * 55,
   };
+}
+
+/** Định dang mốc thời gian thật cho mục bản lưu (C1.2). */
+function formatSaveTime(at?: number | null) {
+  if (!at) return "Chưa có";
+  const d = new Date(at);
+  return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
+/** Nhắc xuất bản lưu khi chưa từng xuất hoặc lần cuối đã quá 7 ngày (C1.2). */
+function needsExportReminder(lastExportAt?: number | null) {
+  if (!lastExportAt) return true;
+  return Date.now() - lastExportAt > 7 * 24 * 60 * 60 * 1000;
 }

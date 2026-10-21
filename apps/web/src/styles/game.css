@@ -1533,6 +1533,51 @@ strong {
   width: 88%;
   height: 88%;
 }
+/*
+ * A4: bậc phát sáng của trang bị cường hóa. Chỉ là hiệu ứng hiển thị
+ * (viền + quầng), không đổi file ảnh và không đổi chỉ số.
+ */
+.item-slot.glow-jade {
+  border-color: #cfeeddcc;
+  box-shadow:
+    inset 0 0 10px #bdf0d255,
+    0 0 7px #c8f2dd88;
+}
+.item-slot.glow-azure {
+  border-color: #9ecdf5dd;
+  box-shadow:
+    inset 0 0 10px #86c6f555,
+    0 0 8px #8ec8f6aa;
+}
+.item-slot.glow-violet {
+  border-color: #c6a9f0dd;
+  box-shadow:
+    inset 0 0 10px #b494f055,
+    0 0 9px #bda2f5aa;
+}
+.item-slot.glow-gold {
+  border-color: #f2d98cdd;
+  box-shadow:
+    inset 0 0 12px #ffd97a66,
+    0 0 10px #f3d68eb3;
+}
+/* +11 trở lên: nhịp sáng-tối nhẹ ~1,2 giây. */
+.item-slot.glow-gold.pulse {
+  animation: enhance-glow 1.2s ease-in-out infinite;
+}
+@keyframes enhance-glow {
+  0%,
+  100% {
+    box-shadow:
+      inset 0 0 12px #ffd97a66,
+      0 0 8px #f3d68e99;
+  }
+  50% {
+    box-shadow:
+      inset 0 0 16px #ffe6a3aa,
+      0 0 16px #ffe6a3e6;
+  }
+}
 .item-slot b {
   position: absolute;
   bottom: 3px;
@@ -1869,7 +1914,8 @@ strong {
   font-size: 10px;
   margin: 15px 0 23px;
 }
-.destination-row {
+.destination-row,
+.travel-row {
   display: flex;
   align-items: center;
   gap: 15px;
@@ -1879,15 +1925,18 @@ strong {
   color: #c8bd96;
   text-align: left;
 }
-.destination-row > svg:last-child {
+.destination-row > svg:last-child,
+.travel-row > svg:last-child {
   margin-left: auto;
 }
-.destination-row strong {
+.destination-row strong,
+.travel-row strong {
   font-family: var(--serif);
   font-size: 16px;
   color: #decca0;
 }
-.destination-row small {
+.destination-row small,
+.travel-row small {
   display: block;
   font-size: 9px;
   color: #8fa68c;
@@ -2169,10 +2218,22 @@ strong {
   border: 1px solid #c28b6577;
   font-size: 10px;
 }
-.toast {
+.toast-stack {
   position: absolute;
   left: 50%;
   bottom: 144px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  gap: 6px;
+  z-index: 40;
+  pointer-events: none;
+}
+.toast {
+  position: relative;
+  left: 50%;
+  bottom: auto;
   transform: translateX(-50%);
   max-width: min(560px, 85vw);
   background: #203c2cf5;
@@ -2294,7 +2355,7 @@ strong {
   .hotbar-wrap {
     bottom: 25px;
   }
-  .toast {
+  .toast-stack {
     bottom: 150px;
   }
 }
@@ -2710,8 +2771,10 @@ strong {
   .panel-bottom {
     padding: 9px 22px;
   }
-  .toast {
+  .toast-stack {
     bottom: 52px;
+  }
+  .toast {
     font-size: 10px;
     padding: 9px 15px;
   }
@@ -2992,7 +3055,7 @@ strong {
     margin-top: 14px;
     padding-top: 10px;
   }
-  .toast {
+  .toast-stack {
     bottom: 39px;
   }
   .mobile-menu {
@@ -3376,6 +3439,54 @@ strong {
     }
   }
 }
+/*
+ * Hội thoại trên màn hình ngang thấp (844x390): khung lời thoại + danh sách
+ * nhiệm vụ vượt quá chiều cao khung, đẩy nút "Nhận nhiệm vụ" ra ngoài vùng
+ * nhìn nên không bấm được. Thu gọn cảnh thoại và đặt nút nhiệm vụ vào thanh
+ * cuộn riêng để mọi nút hành động luôn nằm trong khung.
+ */
+@media (max-width: 1000px) and (max-height: 550px) {
+  .panel-dialogue .dialogue-scene {
+    padding: 0 0 8px;
+    gap: 10px;
+  }
+  .panel-dialogue .dialogue-scene img {
+    height: 74px;
+    width: 58px;
+  }
+  .panel-dialogue .dialogue-scene p {
+    font-size: 12px;
+    line-height: 1.6;
+    margin-top: 4px;
+  }
+  .panel-dialogue .dialogue-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .panel-dialogue .npc-quest {
+    padding: 8px 0 0;
+    border-top: 1px solid var(--line);
+  }
+  .panel-dialogue .npc-quest h3 {
+    font-size: 15px;
+  }
+  .panel-dialogue .npc-quest p {
+    margin: 6px 0;
+    font-size: 10px;
+    line-height: 1.6;
+  }
+  .panel-dialogue .npc-quest small {
+    font-size: 9px;
+  }
+  .panel-dialogue .npc-quest .gold-button {
+    margin-top: 8px;
+  }
+  .panel-dialogue .dialogue-goodbye {
+    margin-top: 10px;
+  }
+}
+
 @media (max-width: 1000px) and (max-height: 550px) {
   .quest-tracker {
     position: fixed;

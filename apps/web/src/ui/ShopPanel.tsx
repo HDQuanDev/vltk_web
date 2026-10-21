@@ -19,7 +19,8 @@ export function ShopPanel({
   if (service !== "merchant" && service !== "smith") return null;
   const catalog = (
     service === "merchant"
-      ? ["hp", "mp"]
+      ? // Hồi Thành Phù (B1) bán tại quầy Diệp dược sư, cùng danh sách hàng sẵn có.
+        ["hp", "mp", "town-scroll"]
       : ["sword", "robe", "boots", "ward-stone"]
   ).map(getItem);
   const rows =

@@ -243,6 +243,7 @@ export class CombatRuntime {
       const amount = this.hit(p, t, power, {
         element: d.element,
         lifeSteal: d.lifeSteal,
+        source: "skill",
       });
       if (amount > 0) this.applyEffects(p, t, effects);
     }
@@ -298,6 +299,8 @@ export class CombatRuntime {
       dot?: boolean;
       ignoreSight?: boolean;
       attackOverride?: number;
+      /** Nguồn gây sát thương để tầng hiển thị phân loại số bay (A3). */
+      source?: "basic" | "skill";
     } = {},
   ) {
     if (
@@ -354,6 +357,12 @@ export class CombatRuntime {
       value: amount,
       critical: result.critical && !options.dot,
       element: options.element ?? a.element,
+      // Phân loại nguồn tại nơi sinh ra số sát thương (A3), không đoán ở UI.
+      damageSource: result.dodge
+        ? "dodge"
+        : options.dot
+          ? "dot"
+          : (options.source ?? "skill"),
     });
     const steal = Math.min(
       0.6,
@@ -576,7 +585,7 @@ export class CombatRuntime {
         0,
         p.attackRange + 1,
       );
-    else this.hit(p, t, 1);
+    else this.hit(p, t, 1, { source: "basic" });
     if (progress && getSect(progress.classId).element !== p.element)
       p.element = getSect(progress.classId).element;
   }

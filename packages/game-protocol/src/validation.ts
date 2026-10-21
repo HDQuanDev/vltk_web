@@ -6,7 +6,9 @@ const settings = z
     sound: z.boolean().optional(),
     music: z.boolean().optional(),
     effects: z.enum(["high", "low"]).optional(),
-    fps: z.union([z.literal(30), z.literal(60)]).optional(),
+    fps: z
+      .union([z.literal(0), z.literal(30), z.literal(60)])
+      .optional(),
   })
   .strict();
 const auto = z
@@ -22,6 +24,8 @@ const auto = z
     mpThreshold: z.number().finite().min(0).max(1).optional(),
     stopHp: z.number().finite().min(0).max(1).optional(),
     range: z.number().finite().min(2).max(12).optional(),
+    skills: z.boolean().optional(),
+    autoPickup: z.boolean().optional(),
   })
   .strict();
 export const gameCommandSchema = z.discriminatedUnion("type", [
@@ -91,6 +95,11 @@ export const gameCommandSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("autoAttack"), enabled: z.boolean() }).strict(),
   z.object({ type: z.literal("configureAuto"), settings: auto }).strict(),
   z.object({ type: z.literal("pause"), paused: z.boolean() }).strict(),
+  z
+    .object({ type: z.literal("claimAchievement"), achievementId: id })
+    .strict(),
+  z.object({ type: z.literal("autoCombatPaused"), paused: z.boolean() }).strict(),
+  z.object({ type: z.literal("travel"), mapId: id }).strict(),
   z
     .object({
       type: z.literal("enhance"),

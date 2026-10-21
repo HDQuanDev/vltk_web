@@ -26,6 +26,23 @@ export interface ClientPreferences {
   renderMode: "2d" | "3d";
   /** Bóng đổ thật trong bộ hiển thị 3D (mặc định tắt, chỉ bật khi đo được). */
   shadows3d: boolean;
+  /** Hiện số sát thương bay lên (A3). Tắt vẫn giữ nhấp nháy đỏ khi trúng đòn. */
+  damageNumbers: boolean;
+  /** Vòng sáng ấm quanh nhân vật vào ban đêm (C2). */
+  playerNightLight: boolean;
+  /** Hiện số FPS ở góc màn hình game (C3). */
+  showFps: boolean;
+  /**
+   * Cấu hình tự chiến (A1.7). Lưu ở cài đặt chung, không theo nhân vật; được
+   * đẩy xuống simulation qua lệnh `configureAuto` mỗi khi vào game/đổi.
+   * Ngưỡng 0 = tắt uống thuốc theo ngưỡng đó.
+   */
+  autoCombat: {
+    hpThreshold: number;
+    mpThreshold: number;
+    useSkills: boolean;
+    autoPickup: boolean;
+  };
 }
 export const defaultPreferences: ClientPreferences = {
   quality: "auto",
@@ -43,6 +60,15 @@ export const defaultPreferences: ClientPreferences = {
   cameraLookahead: true,
   renderMode: "2d",
   shadows3d: false,
+  damageNumbers: true,
+  playerNightLight: true,
+  showFps: false,
+  autoCombat: {
+    hpThreshold: 0.4,
+    mpThreshold: 0.25,
+    useSkills: true,
+    autoPickup: true,
+  },
 };
 let current: ClientPreferences = { ...defaultPreferences };
 try {
@@ -68,11 +94,25 @@ try {
     "depthFog",
     "parallaxForeground",
     "cameraLookahead",
+    "damageNumbers",
+    "playerNightLight",
+    "showFps",
   ] as const)
     if (typeof raw[key] === "boolean") current[key] = raw[key];
   if (["2d", "3d"].includes(raw.renderMode))
     current.renderMode = raw.renderMode;
   if (typeof raw.shadows3d === "boolean") current.shadows3d = raw.shadows3d;
+  const auto = raw.autoCombat;
+  if (auto && typeof auto === "object") {
+    if (typeof auto.hpThreshold === "number")
+      current.autoCombat.hpThreshold = auto.hpThreshold;
+    if (typeof auto.mpThreshold === "number")
+      current.autoCombat.mpThreshold = auto.mpThreshold;
+    if (typeof auto.useSkills === "boolean")
+      current.autoCombat.useSkills = auto.useSkills;
+    if (typeof auto.autoPickup === "boolean")
+      current.autoCombat.autoPickup = auto.autoPickup;
+  }
 } catch {
   /* Các tùy chọn client có thể dùng mặc định, không ảnh hưởng bản lưu RPG. */
 }

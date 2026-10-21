@@ -85,6 +85,30 @@ export interface AutoCombatSettings {
   mpThreshold: number;
   stopHp: number;
   range: number;
+  /** Dùng kỹ năng đã gán vào thanh kỹ năng khi tự chiến. */
+  skills?: boolean;
+  /** Bật/tắt tự nhặt đồ trong bán kính 3 ô khi tự chiến. */
+  autoPickup?: boolean;
+}
+/**
+ * Bộ đếm thành tựu lưu theo nhân vật.
+ * Bản lưu cũ không có trường này; khởi tạo bằng giá trị suy ra từ trạng thái
+ * hiện tại khi nạp lần đầu (xem `initAchievements` trong game-core).
+ */
+export interface AchievementCounters {
+  /** Tổng số quái đã hạ. */
+  kills: number;
+  /** Số Lang vương đã hạ (tính cả Lang Vương Tinh Anh). */
+  wolfKills: number;
+  /** Mức bạc cao nhất từng sở hữu cùng lúc. */
+  peakGold: number;
+  /** Số lần cường hóa thành công tại Công xưởng. */
+  enhancementSuccess: number;
+}
+export interface AchievementState {
+  counters: AchievementCounters;
+  /** Id thành tựu đã nhận thưởng (mỗi thành tựu chỉ nhận 1 lần). */
+  claimed: string[];
 }
 export type EntityId = string;
 export type Vec2 = { x: number; y: number };
@@ -128,7 +152,19 @@ export type GameCommand =
   | { type: "craft"; recipeId: string }
   | { type: "resetStats" }
   | { type: "configureAuto"; settings: Partial<AutoCombatSettings> }
-  | { type: "pause"; paused: boolean };
+  | { type: "pause"; paused: boolean }
+  /** Nhận thưởng thành tựu; mỗi thành tựu chỉ nhận được 1 lần. */
+  | { type: "claimAchievement"; achievementId: string }
+  /**
+   * Tạm dừng ngầm tự chiến khi người chơi mở hội thoại/shop.
+   * Không phải bật/tắt: `autoAttack` giữ nguyên trạng thái.
+   */
+  | { type: "autoCombatPaused"; paused: boolean }
+  /**
+   * Dịch chuyển nhanh giữa khu vực đã khám phá (Thiên hạ đồ).
+   * Trừ 30 bạc, dùng điểm đến của cổng truyền tống sẵn có.
+   */
+  | { type: "travel"; mapId: string };
 export interface CommandEnvelope {
   protocolVersion: typeof PROTOCOL_VERSION;
   sequence: number;
@@ -178,11 +214,21 @@ export interface CombatEntity extends Vec2 {
   phase: number;
   facing: number;
   autoAttack: boolean;
+  /**
+   * Đuổi đánh đúng một mục tiêu do người chơi click (không phải tự chiến).
+   * Tự chiến dùng `autoAttack`; hai cờ loại trừ nhau.
+   */
+  autoChase?: boolean;
   farmAnchor?: Vec2 | null;
   movementInput?: Vec2 | null;
   spawnZoneId?: string;
   spawnSlot?: number;
   elite?: boolean;
+  /**
+   * Tự chiến đang bị tạm dừng ngầm (đang mở hội thoại/shop). Không phải trạng
+   * thái bật/tắt: bật/tắt nằm ở `autoAttack`, cờ này chỉ chặn ra quyết định.
+   */
+  autoCombatPaused?: boolean;
 }
 export interface GroundLoot extends Vec2 {
   id: string;
@@ -226,7 +272,8 @@ export interface GameSettings {
   sound: boolean;
   music: boolean;
   effects: "high" | "low";
-  fps: 30 | 60;
+  /** 0 = không giới hạn khung hình, 30/60 = giới hạn theo FPS. */
+  fps: 0 | 30 | 60;
 }
 export interface CharacterProgress {
   playedTicks: number;
@@ -245,6 +292,11 @@ export interface CharacterProgress {
   equipment: Record<string, ItemInstance>;
   warehouse: ItemInstance[];
   quests: QuestProgress[];
+  /**
+   * NPC đã hoàn thành bước hội thoại, lưu tick đã nói chuyện.
+   * Bản lưu cũ không có trường này; tự điền mặc định rỗng khi nạp.
+   */
+  questTalks?: Record<string, number>;
   gold: number;
   settings: GameSettings;
   pendingInteraction: string | null;
@@ -254,6 +306,24 @@ export interface CharacterProgress {
   autoCombat: AutoCombatSettings;
   /** Lịch sử cường hóa gần nhất, giới hạn 20 dòng. */
   enhanceLog?: EnhanceRecord[];
+  /**
+   * Bộ đếm + thành tựu đã nhận thưởng. Bản lưu cũ không có trường này;
+   * `createGame` khởi tạo mới, khi nạp bản lưu cũ thì suy ra từ trạng thái.
+   */
+  achievements?: AchievementState;
+  /**
+   * Mốc thời gian thật (ms) tinh anh được phép xuất hiện lại theo từng mục
+   * trong danh sách tinh anh. Bản lưu cũ thiếu trường thì khởi tạo bằng
+   * "bây giờ + chu kỳ" để người chơi không bị dồn nhiều tinh anh cùng lúc.
+   */
+  eliteSpawns?: Record<string, number>;
+  /** Cờ 10 giây bỏ qua mục tiêu của tự chiến (id quái → mốc hết hạn, tick). */
+  autoCombatSkip?: Record<string, number>;
+  /**
+   * Mốc thời gian thật (ms) được phép dịch chuyển nhanh lần kế tiếp.
+   * Bản lưu cũ thiếu trường thì coi như đã sẵn sàng.
+   */
+  travelReadyAt?: number;
 }
 export interface GameSnapshot extends CharacterProgress {
   schemaVersion: 2;
@@ -298,6 +368,7 @@ export interface GameEvent {
     | "level"
     | "skill"
     | "map"
+    | "quest"
     | "dialogue"
     | "error"
     | "projectile"
@@ -314,6 +385,11 @@ export interface GameEvent {
   value?: number;
   skillId?: string;
   critical?: boolean;
+  /**
+   * Nguồn sát thương, gắn tại nơi sinh ra số (damage pipeline) để tầng hiển
+   * thị phân loại màu/cỡ mà không phải đoán lại (A3).
+   */
+  damageSource?: "basic" | "skill" | "dot" | "dodge";
   position?: Vec2;
   radius?: number;
   resolveAt?: number;

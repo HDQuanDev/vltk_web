@@ -46,6 +46,10 @@ import { bossMechanicEvent } from "../world/boss-effects";
 /** Neo chân (246/256) và ngưỡng HP dùng chung cho mọi bộ ảnh actor. */
 const spriteOriginY = actorSpriteOriginY;
 const hurtHpRatio = actorSpriteManifest.hurtHpRatio;
+/** Tỉ lệ vẽ tinh anh so với quái gốc (B2.2). */
+const ELITE_SCALE = 1.35;
+/** Đường kính vùng sáng quanh nhân vật ban đêm (C2): bán kính ~3 ô. */
+const PLAYER_GLOW_DIAMETER = 3 * 48 * 2;
 export interface WorldCallbacks {
   onReady: () => void;
   onError: (message: string) => void;
@@ -76,6 +80,10 @@ interface EntityView {
   sprite: Phaser.GameObjects.Image;
   bar: Phaser.GameObjects.Graphics;
   ring: Phaser.GameObjects.Ellipse;
+  /** Vòng sáng vàng dưới chân tinh anh (B2). */
+  eliteRing: Phaser.GameObjects.Ellipse;
+  /** Quầng sáng dưới chân theo bậc cường hóa cao nhất đang mặc (A4). */
+  enhanceGlow: Phaser.GameObjects.Ellipse;
   /** Bóng dưới chân: đổi độ đậm/độ lớn theo trạng thái (attack/cast/dead). */
   shadow: Phaser.GameObjects.Ellipse;
   label: Phaser.GameObjects.Text;
@@ -438,6 +446,16 @@ export class WorldScene extends Phaser.Scene {
     const ring = this.add
       .ellipse(0, 0, 42, 20, 0xd5b66e, 0)
       .setStrokeStyle(1.5, e.kind === "player" ? 0xd5c48b : 0xd9785c, 0.7);
+    // Vòng sáng vàng dưới chân tinh anh (B2.2), vẽ bằng code.
+    const eliteRing = this.add
+      .ellipse(0, 2, 46, 20, 0xf0cf6b, 0.16)
+      .setStrokeStyle(2, 0xf3d885, 0.8)
+      .setVisible(false);
+    // Quầng sáng dưới chân theo bậc cường hóa cao nhất đang mặc (A4.3).
+    const enhanceGlow = this.add
+      .ellipse(0, 3, 40, 17, 0xb494f0, 0.2)
+      .setStrokeStyle(2, 0xc6a9f0, 0.85)
+      .setVisible(false);
     const atlas = {
       key: actorTexture(this, this.weaponFor(e)),
       width: boss ? 88 : 64,
@@ -526,12 +544,14 @@ export class WorldScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
     const bar = this.add.graphics();
-    container.add([shadow, ring, sprite, label, bar]);
+    container.add([shadow, enhanceGlow, eliteRing, ring, sprite, label, bar]);
     const view: EntityView = {
       container,
       sprite,
       bar,
       ring,
+      eliteRing,
+      enhanceGlow,
       shadow,
       label,
       atlas,
@@ -550,6 +570,8 @@ export class WorldScene extends Phaser.Scene {
   private syncActorSprite(e: CombatEntity, v: EntityView) {
     const elapsed = this.snapshot.tick - e.stateStartedAt;
     const source = v.spriteSource;
+    // Tinh anh vẽ lớn hơn 1,35 lần bằng tỉ lệ vẽ; không sửa file ảnh (B2.2).
+    const eliteScale = e.elite ? ELITE_SCALE : 1;
     if (source) {
       const lowHp = e.maxHp > 0 && e.hp / e.maxHp <= hurtHpRatio;
       const frame =
@@ -579,7 +601,10 @@ export class WorldScene extends Phaser.Scene {
         v.sprite
           .setOrigin(0.5, spriteOriginY)
           .setFlipX(frame.flipX)
-          .setDisplaySize(source.height, source.height);
+          .setDisplaySize(
+            source.height * eliteScale,
+            source.height * eliteScale,
+          );
         return;
       }
     }
@@ -588,7 +613,7 @@ export class WorldScene extends Phaser.Scene {
         .setTexture(v.atlas.key)
         .setOrigin(0.5, 88 / 96)
         .setFlipX(false)
-        .setDisplaySize(v.atlas.width, v.atlas.height);
+        .setDisplaySize(v.atlas.width * eliteScale, v.atlas.height * eliteScale);
     }
     v.sprite.setFrame(
       animationFrame(
@@ -646,14 +671,37 @@ export class WorldScene extends Phaser.Scene {
         down = e.state === "dead";
       v.shadow.setScale(crouch ? 0.85 : 1);
       v.shadow.setAlpha(down ? 0.15 : crouch ? 0.22 : 0.4);
+      // A2.3: tên tinh anh màu vàng kim (đặt ở createView) và luôn kèm chữ
+      // "Tinh Anh" kể cả khi tên dữ liệu không có sẵn cụm đó.
+      const labelText =
+        e.elite && !e.name.includes("Tinh Anh")
+          ? `${e.name} · Tinh Anh`
+          : e.name;
+      if (v.label.text !== labelText) v.label.setText(labelText);
       v.label.setY(v.labelY);
       v.bar.clear();
-      if (e.hp > 0) {
+      // A2: chỉ hiện tên + thanh máu cho quái đang được chọn, đang giao chiến,
+      // đã mất máu hoặc tinh anh. Quái nguyên vẹn chưa giao chiến thì ẩn.
+      const engaged =
+        p.targetId === e.id ||
+        e.targetId === p.id ||
+        (e.threat[p.id] ?? 0) > 0 ||
+        e.hp < e.maxHp ||
+        !!e.elite;
+      const showBar = e.kind === "monster" && e.hp > 0 && engaged;
+      v.label.setVisible(e.kind === "monster" ? showBar : true);
+      if (e.kind === "player" && e.hp > 0) {
         const y = v.barY;
         v.bar.fillStyle(0x15231c, 0.9).fillRoundedRect(-23, y, 46, 4, 1);
         v.bar
-          .fillStyle(e.kind === "player" ? 0x9fae6f : 0xb75642)
+          .fillStyle(0x9fae6f)
           .fillRoundedRect(-22, y + 1, (44 * e.hp) / e.maxHp, 2, 1);
+      } else if (showBar) {
+        const y = v.barY,
+          ratio = e.maxHp > 0 ? e.hp / e.maxHp : 0,
+          color = ratio > 0.5 ? 0x8fbf5f : ratio > 0.25 ? 0xd7b356 : 0xc2503c;
+        v.bar.fillStyle(0x15231c, 0.9).fillRoundedRect(-23, y, 46, 4, 1);
+        v.bar.fillStyle(color).fillRoundedRect(-22, y + 1, 44 * ratio, 2, 1);
       }
       if (e.casting) {
         const total = Math.max(1, e.casting.resolveAt - e.stateStartedAt),
@@ -680,7 +728,31 @@ export class WorldScene extends Phaser.Scene {
             .fillCircle(-12 + ix++ * 5, v.barY + 19, 1.5);
         }
       }
-      v.ring.setVisible(e.kind === "player" || p.targetId === e.id);
+      v.ring.setVisible(
+        e.kind === "player" || p.targetId === e.id || !!e.elite,
+      );
+      // A4.3: nhân vật là sprite nguyên bộ (không tách vũ khí), nên dùng quầng
+      // sáng dưới chân theo bậc cường hóa cao nhất đang mặc, chỉ từ +9.
+      const topEnhance = Math.max(
+        0,
+        ...Object.values(this.snapshot.equipment).map(
+          (item) => item.enhancement ?? 0,
+        ),
+      );
+      const glowTone =
+        topEnhance >= 11
+          ? 0xf3d885
+          : topEnhance >= 9
+            ? 0xb494f0
+            : topEnhance >= 7
+              ? 0x8ec8f6
+              : 0xc8f2dd;
+      v.enhanceGlow
+        .setVisible(e.kind === "player" && topEnhance >= 9)
+        .setFillStyle(glowTone, e.kind === "player" ? 0.18 : 0)
+        .setStrokeStyle(2, glowTone, 0.75);
+      // Vòng sáng vàng dưới chân tinh anh, vẽ bằng code (B2.2).
+      v.eliteRing.setVisible(!!e.elite && e.hp > 0);
     }
     const playerView = this.views.get(p.id),
       nightFactor = nightFactorFromClock(this.snapshot.worldClock.timeTicks);
@@ -733,10 +805,12 @@ export class WorldScene extends Phaser.Scene {
     this.vfx?.event(e, this.snapshot);
     if (e.type === "damage" && e.value) {
       const view = this.views.get(e.entityId ?? "");
-      if (view) {
+      // A3: nhấp nháy đỏ 80–100ms khi trúng đòn; bỏ qua sát thương độc theo
+      // nhịp (dot) để tránh chớp liên tục.
+      if (view && e.damageSource !== "dot") {
         const color = view.sprite.tintTopLeft;
-        view.sprite.setTintFill(0xf6e8c9);
-        this.time.delayedCall(70, () => {
+        view.sprite.setTintFill(0xe0675a);
+        this.time.delayedCall(90, () => {
           if (view.sprite.active) view.sprite.setTint(color);
         });
       }
@@ -757,6 +831,12 @@ export class WorldScene extends Phaser.Scene {
       this.cameras.main.shake(120, 0.0025);
   }
   /** Đốm sáng nhỏ của người chơi cục bộ: theo view, chỉ hiện khi về đêm. */
+  /**
+   * Vòng sáng ấm quanh nhân vật ban đêm (C2).
+   *
+   * Dùng texture gradient đã tạo sẵn một lần trong `ensureGlowTexture` (không
+   * tạo gradient mỗi frame), bán kính ~3 ô, tắt hoàn toàn ban ngày.
+   */
   private syncPlayerGlow(
     playerView: EntityView | undefined,
     nightFactor: number,
@@ -766,12 +846,16 @@ export class WorldScene extends Phaser.Scene {
       glow?.setVisible(false);
       return;
     }
-    const alpha = getPreferences().glowLanterns ? 0.3 * nightFactor : 0;
+    const enabled =
+      getPreferences().playerNightLight && getPreferences().glowLanterns;
+    // 3 ô ≈ 3 * 48px theo tỉ lệ worldToScreen (x-y)*48, đường kính gấp đôi.
+    const alpha = enabled ? 0.42 * nightFactor : 0;
     glow.setVisible(alpha > 0.01);
     if (alpha <= 0.01) return;
     glow
       .setPosition(playerView.container.x, playerView.container.y - 10)
       .setDepth(playerView.container.y - 1)
-      .setAlpha(alpha);
+      .setAlpha(alpha)
+      .setDisplaySize(PLAYER_GLOW_DIAMETER, PLAYER_GLOW_DIAMETER * 0.55);
   }
 }

@@ -29,27 +29,27 @@ export class EnvironmentRenderer {
     // điều khiển bằng setAlpha(), nếu không lớp phủ không bao giờ hiện.
     this.night = scene.add
       .rectangle(0, 0, 1, 1, 0x122138, 1)
-      .setOrigin(0)
+      .setOrigin(0.5, 0.5)
       .setScrollFactor(0)
       .setDepth(8999)
       .setAlpha(0);
     this.dusk = scene.add
       .rectangle(0, 0, 1, 1, 0xff8c3a, 1)
-      .setOrigin(0)
+      .setOrigin(0.5, 0.5)
       .setScrollFactor(0)
       .setDepth(8998)
       .setAlpha(0);
     this.fogTextures = ensureDepthFogTextures(scene);
     this.fogTop = scene.add
       .image(0, 0, this.fogTextures.top)
-      .setOrigin(0)
+      .setOrigin(0.5, 0)
       .setScrollFactor(0)
       .setDepth(9001)
       .setAlpha(0)
       .setVisible(false);
     this.fogBottom = scene.add
       .image(0, 0, this.fogTextures.bottom)
-      .setOrigin(0)
+      .setOrigin(0.5, 1)
       .setScrollFactor(0)
       .setDepth(9001)
       .setAlpha(0)
@@ -194,6 +194,15 @@ export class EnvironmentRenderer {
     const budget = qualityBudget(this.scene.scale.width),
       width = this.scene.scale.width,
       height = this.scene.scale.height,
+      cam = this.scene.cameras.main,
+      zoom = cam.zoom || 1,
+      invZoom = 1 / zoom,
+      viewW = width * invZoom,
+      viewH = height * invZoom,
+      centerX = width * 0.5,
+      centerY = height * 0.5,
+      topY = centerY - viewH * 0.5,
+      botY = centerY + viewH * 0.5,
       prefs = getPreferences(),
       night = nightFactorFromClock(s.worldClock.timeTicks),
       // Hoàng hôn và sương đều là lớp phủ toàn màn hình (tốn fill-rate) nên tắt
@@ -205,20 +214,23 @@ export class EnvironmentRenderer {
       fogAlpha = prefs.depthFog && budget.level !== "low" ? 1 - night * 0.5 : 0;
     // Lớp phủ chỉ bật khi thật sự có tác dụng: alpha ~0 thì ẩn hẳn.
     this.night
-      .setSize(width, height)
+      .setPosition(centerX, centerY)
+      .setSize(viewW, viewH)
       .setAlpha(night * 0.36)
       .setVisible(night > 0.003);
     this.dusk
-      .setSize(width, height)
+      .setPosition(centerX, centerY)
+      .setSize(viewW, viewH)
       .setAlpha(duskAlpha)
       .setVisible(duskAlpha > 0.003);
     this.fogTop
-      .setDisplaySize(width, Math.max(1, Math.round(height * 0.3)))
+      .setPosition(centerX, topY)
+      .setDisplaySize(viewW, Math.max(1, Math.round(viewH * 0.3)))
       .setAlpha(fogAlpha)
       .setVisible(fogAlpha > 0.003);
     this.fogBottom
-      .setPosition(0, Math.round(height * 0.62))
-      .setDisplaySize(width, Math.max(1, Math.round(height * 0.38)))
+      .setPosition(centerX, botY)
+      .setDisplaySize(viewW, Math.max(1, Math.round(viewH * 0.38)))
       .setAlpha(fogAlpha)
       .setVisible(fogAlpha > 0.003);
     this.weather.clear();

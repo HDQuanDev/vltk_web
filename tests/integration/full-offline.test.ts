@@ -6,6 +6,7 @@ import {
   addItem,
   isWalkable,
   distance,
+  AUTO_COMBAT_RANGE,
 } from "../../packages/game-core/src/index";
 import {
   characterNameError,
@@ -197,7 +198,12 @@ describe("Ground loot authoritative", () => {
     expect(w.state.groundLoot[rare.id]).toBeUndefined();
     expect(w.state.groundLoot[gold.id]).toBeUndefined();
     expect(w.state.gold).toBe(200);
-    expect(distance(w.player, w.player.farmAnchor!)).toBeLessThan(1);
+    // Bán kính quét của tự chiến theo đặc tả A1 là 12 ô, nên nhân vật có thể
+    // tiến tới mục tiêu trong bán kính đó; vẫn phải ở trong bán kính quanh bãi
+    // farm, không đi lang thang khắp map.
+    expect(distance(w.player, w.player.farmAnchor!)).toBeLessThan(
+      AUTO_COMBAT_RANGE,
+    );
     while (w.state.inventory.length < 32) addItem(w.state, "sword");
     drop(w, {
       item: { id: "ground:full", definitionId: "boots", quantity: 1 },

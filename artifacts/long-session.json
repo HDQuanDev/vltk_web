@@ -2,49 +2,49 @@
   "schemaVersion": 2,
   "simulationHours": 4,
   "ticks": 288000,
-  "elapsedMs": 20853,
+  "elapsedMs": 6677,
   "maxEntities": 21,
   "maxProjectiles": 1,
   "checkpoints": [
     {
       "tick": 251,
-      "bytes": 13350,
+      "bytes": 13512,
       "entities": 19
     },
     {
       "tick": 36251,
-      "bytes": 76407,
+      "bytes": 14735,
       "entities": 21
     },
     {
       "tick": 72251,
-      "bytes": 74640,
-      "entities": 19
+      "bytes": 14637,
+      "entities": 21
     },
     {
       "tick": 108251,
-      "bytes": 78602,
-      "entities": 19
+      "bytes": 14731,
+      "entities": 21
     },
     {
       "tick": 144251,
-      "bytes": 78188,
-      "entities": 19
+      "bytes": 14647,
+      "entities": 21
     },
     {
       "tick": 180251,
-      "bytes": 81791,
-      "entities": 19
+      "bytes": 14712,
+      "entities": 21
     },
     {
       "tick": 216251,
-      "bytes": 81825,
-      "entities": 19
+      "bytes": 14765,
+      "entities": 21
     },
     {
       "tick": 252251,
-      "bytes": 81661,
-      "entities": 19
+      "bytes": 14667,
+      "entities": 21
     }
   ],
   "finalTick": 289450,

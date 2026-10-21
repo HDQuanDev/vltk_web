@@ -26,13 +26,13 @@ export class ForegroundRenderer {
     ensureForegroundTextures(this.scene);
     this.far = this.scene.add
       .tileSprite(0, 0, 1, 1, FOREGROUND_FAR_TEXTURE)
-      .setOrigin(0)
+      .setOrigin(0.5, 0)
       .setScrollFactor(0)
       .setDepth(9550)
       .setAlpha(0.3);
     this.near = this.scene.add
       .tileSprite(0, 0, 1, 1, FOREGROUND_NEAR_TEXTURE)
-      .setOrigin(0)
+      .setOrigin(0.5, 0)
       .setScrollFactor(0)
       .setDepth(9600)
       .setAlpha(0.55);
@@ -48,18 +48,27 @@ export class ForegroundRenderer {
     this.ensureLayers();
     const width = this.scene.scale.width,
       height = this.scene.scale.height,
+      cam = this.scene.cameras.main,
+      zoom = cam.zoom || 1,
+      invZoom = 1 / zoom,
+      viewW = width * invZoom,
+      viewH = height * invZoom,
+      centerX = width * 0.5,
+      centerY = height * 0.5,
+      topY = centerY - viewH * 0.5,
       near = this.near!,
       far = this.far!,
-      scrollX = this.scene.cameras.main.scrollX,
+      scrollX = cam.scrollX,
       still = prefs.reducedMotion;
     far
       .setVisible(true)
-      .setPosition(0, Math.round(height * NEAR_HEIGHT))
-      .setSize(width, Math.max(1, Math.round(height * FAR_HEIGHT)))
+      .setPosition(centerX, topY + Math.round(viewH * NEAR_HEIGHT))
+      .setSize(viewW, Math.max(1, Math.round(viewH * FAR_HEIGHT)))
       .setTilePosition(still ? 0 : -((scrollX * FAR_PARALLAX) % far.width), 0);
     near
       .setVisible(true)
-      .setSize(width, Math.max(1, Math.round(height * NEAR_HEIGHT)))
+      .setPosition(centerX, topY)
+      .setSize(viewW, Math.max(1, Math.round(viewH * NEAR_HEIGHT)))
       .setTilePosition(
         still ? 0 : -((scrollX * NEAR_PARALLAX) % near.width),
         0,

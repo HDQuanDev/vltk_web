@@ -13,7 +13,7 @@ import type {
 export function questNavigation(
   s: GameSnapshot,
   q: (typeof quests)[number],
-  progress?: QuestProgress,
+  progress?: QuestProgress | null,
 ): GameCommand | null {
   let destinationMap = "",
     point: { x: number; y: number } | undefined,

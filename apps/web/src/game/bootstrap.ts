@@ -5,6 +5,25 @@ import { getPreferences, setPreferences } from "./preferences";
 /** Hợp đồng chung cho cả hai bộ hiển thị (Phaser 2D và Three.js 3D). */
 export interface BootedRenderer {
   destroy(removeCanvas: boolean): void;
+  /** Đổi giới hạn khung hình ngay khi đang chạy (0 = không giới hạn). */
+  setFpsLimit?(fps: number): void;
+}
+/**
+ * Áp giới hạn khung hình vào TimeStep đang chạy mà không khởi tạo lại game.
+ * `fpsLimit`/`_limitRate` là các trường Phaser dùng lại mỗi vòng lặp.
+ */
+function applyFpsLimit(loop: Phaser.Core.TimeStep, fps: number) {
+  const limit = fps > 0 ? fps : 0;
+  // `_limitRate` là trường nội bộ Phaser dùng lại mỗi vòng lặp; khai báo kiểu
+  // tối thiểu tại đây thay vì sửa thư viện.
+  const internals = loop as unknown as {
+    fpsLimit: number;
+    hasFpsLimit: boolean;
+    _limitRate: number;
+  };
+  internals.fpsLimit = limit;
+  internals.hasFpsLimit = limit > 0;
+  internals._limitRate = limit > 0 ? 1000 / limit : 0;
 }
 function bootPhaser(
   parent: HTMLElement,
@@ -40,6 +59,9 @@ function bootPhaser(
       disposed = true;
       game.destroy(removeCanvas);
       if (removeCanvas) game.canvas?.remove();
+    },
+    setFpsLimit(fps: number) {
+      applyFpsLimit(game.loop, fps);
     },
   };
 }

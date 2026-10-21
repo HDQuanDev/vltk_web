@@ -23,6 +23,23 @@ interface Popup {
   start: number;
   y: number;
 }
+/**
+ * Phân loại số sát thương (A3): màu + cỡ theo nguồn do damage pipeline gắn.
+ * Quái đánh nhân vật hiển thị đỏ; độc theo nhịp xanh lá và cỡ nhỏ.
+ */
+function damagePopupStyle(e: GameEvent): { color: string; size: number } {
+  if (e.type === "level") return { color: "#ffe3a3", size: 27 };
+  if (e.type === "heal") return { color: "#c8efae", size: 19 };
+  if (e.type !== "damage") return { color: "#f0d39a", size: 19 };
+  if (e.damageSource === "dodge") return { color: "#cfd3cd", size: 19 };
+  if (e.damageSource === "dot") return { color: "#9ed67a", size: 16 };
+  // Sát thương quái đánh nhân vật: đỏ, hiện trên đầu nhân vật.
+  const victimIsPlayer = e.entityId?.startsWith("player") ?? false;
+  if (victimIsPlayer) return { color: "#f08a7a", size: 21 };
+  if (e.critical) return { color: "#ffc85e", size: 27 };
+  if (e.damageSource === "skill") return { color: "#f6e0a6", size: 21 };
+  return { color: "#f4f1e6", size: 19 };
+}
 export class CombatVFXRenderer {
   private free: Phaser.GameObjects.Graphics[] = [];
   private active: Burst[] = [];
@@ -164,7 +181,14 @@ export class CombatVFXRenderer {
     }
   }
   private popup(e: GameEvent, at: { x: number; y: number }) {
-    if (this.texts.length >= 16) return;
+    // Trần 30 số cùng lúc; quá thì bỏ số cũ nhất (A3).
+    if (this.texts.length >= 30) {
+      const oldest = this.texts.shift();
+      oldest?.object.setVisible(false);
+      if (oldest) this.freeText.push(oldest.object);
+    }
+    if (e.type === "damage" && !getPreferences().damageNumbers) return;
+    const style = damagePopupStyle(e);
     const t = (
       this.freeText.pop() ??
       this.scene.add.text(0, 0, "", {
@@ -186,10 +210,8 @@ export class CombatVFXRenderer {
             ? `+${e.value ?? ""}`
             : e.text,
       )
-      .setFontSize(e.critical ? 27 : 19)
-      .setColor(
-        e.type === "heal" ? "#c8efae" : e.critical ? "#ffe3a3" : "#f0d39a",
-      );
+      .setFontSize(style.size)
+      .setColor(style.color);
     const start = this.scene.time.now;
     this.texts.push({ object: t, start, until: start + 850, y: at.y - 77 });
   }

@@ -1,3 +1,148 @@
+# Phiên gói 10 tính năng trải nghiệm (A1–C3) — mới nhất
+
+Scope: `packages/game-core` (tự chiến trong core, tinh anh theo giờ, thành tựu, dịch chuyển nhanh, Hồi Thành Phù), `packages/game-protocol` (field/lệnh mới), `packages/game-storage` (schema mới + bản lưu dự phòng xoay vòng), `packages/game-content` (item `town-scroll`, `elites`, `achievements`), `apps/web` (panel Tự chiến/Thành tựu, HUD, renderer), `apps/web/src/styles/*` (glow bậc cường hóa, `.fps-counter`, `.travel-row`).
+
+## Đã triển khai (theo 10 mục đặc tả)
+
+- **A1 tự chiến thật**: `autoCombatTick()` chạy trong `step()` theo `AUTO_COMBAT_TICK_MS = 250` (5 tick mô phỏng), thứ tự uống thuốc → buff tự thân (`autoCombatBuff`) → nhặt đồ 3 ô → chọn mục tiêu 12 ô (ưu tiên quái đang đánh mình) → AOE khi ≥3 quái → đơn mục tiêu nội lực cao nhất → đánh thường. Chống kẹt: 3 lần tìm đường thất bại hoặc 5 giây không gây sát thương → bỏ qua 10 giây. `autoCombatPaused` là lệnh riêng để tạm dừng ngầm khi mở hội thoại/shop. Click quái chỉ đuổi đánh (`autoChase`), không bật tự chiến. Phím **F** bật/tắt, chuột phải mở `AutoCombatPanel` (lưu vào `preferences`).
+- **A2 thanh máu + tên quái**: vẽ trong `WorldScene` cùng lớp với số sát thương; chỉ hiện khi là target / đang giao chiến / đã mất máu / là tinh anh; màu theo ngưỡng HP (>50% xanh, 25–50% vàng, <25% đỏ); tên tinh anh vàng kim kèm chữ "Tinh Anh".
+- **A3 số sát thương phân loại**: `damageSource` (`basic|skill|dot|dodge`) gắn ngay tại `combat/runtime.ts` `hit()`; `CombatVFXRenderer.damagePopupStyle()` chọn màu/cỡ; trần 30 popup; nháy đỏ 90ms khi trúng đòn (bỏ qua dot); công tắc "Số sát thương" mặc định bật.
+- **A4 trang bị phát sáng**: `enhancementGlowClass()` (jade +5, azure +7, violet +9, gold +11 có nhịp 1,2s) áp cho `ItemSlot` ở hành trang/trang bị/kho; nhân vật là sprite nguyên bộ nên dùng quầng sáng dưới chân từ +9 (`WorldScene`); chú thích bậc phát sáng trong `WorkshopPanel`.
+- **B1 di chuyển nhanh**: item `town-scroll` (Hồi Thành Phù, 50 bạc, bán ở Diệp dược sư), dùng qua `useItem` → về đúng `RESPAWN_POINT` (14,14); chặn khi đã ở Tân Thủ Thôn, dùng được khi đang giao chiến. Thiên hạ đồ có khối "Dịch chuyển nhanh": chỉ khu đã khám phá, 30 bạc, cooldown 10 giây thật (`travelReadyAt`), chặn khi đang giao chiến, điểm đến lấy từ `portal.destination`.
+- **B2 tinh anh theo giờ**: `elites` data-driven (Lang Vương Tinh Anh ở Thanh Trúc Lâm, Sơn Tặc Đầu Lĩnh ở Tân Thủ Thôn), HP×6 / attack×1.6 / exp×6 nhân lúc sinh, scale 1.35, tên vàng kim + vòng sáng vàng. Chu kỳ 30 phút thật; mốc sau khi hạ lưu vào `eliteSpawns` trong bản lưu. Thưởng 150–300 bạc + 1 Huyền Thiết + 30% trang bị. `definitionId` giữ quái gốc nên nhiệm vụ "Lang vương" vẫn đếm.
+- **B3 thành tựu**: 10 mục trong `achievements`, bộ đếm lưu theo nhân vật (`kills`, `wolfKills`, `peakGold`, `enhancementSuccess` + suy ra cấp/bạc/khu vực/nhiệm vụ), `AchievementPanel` dùng khung panel Nhiệm vụ, nhận thưởng đúng 1 lần (authority kiểm tra), toast "Đạt thành tựu: …" qua hàng đợi sẵn có.
+- **C1 bảo vệ bản lưu**: 3 bản dự phòng xoay vòng (`BACKUP_SLOTS`, chỉ ghi khi dữ liệu khác và cách ≥5 phút), tự khôi phục bản mới nhất khi bản chính lỗi + thông báo mốc thời gian (hiện ở cả màn chọn nhân vật), dòng "Lần lưu/lần xuất gần nhất" + nhắc xuất khi quá 7 ngày, tên file `<tên>-<YYYYMMDD-HHmm>.json`.
+- **C2 vòng sáng ban đêm**: `syncPlayerGlow()` dùng texture gradient tạo một lần (`ensureGlowTexture`), bán kính 3 ô, độ sáng theo `nightFactorFromClock`, tắt hoàn toàn ban ngày; công tắc riêng `playerNightLight` (mặc định bật).
+- **C3 giới hạn khung hình + FPS**: `applyFpsLimit()` ghi trực tiếp `fpsLimit`/`hasFpsLimit`/`_limitRate` của `TimeStep` khi `settings.fps` đổi (không tải lại); bỏ ghi chú "cần tải lại"; công tắc "Hiện FPS" (mặc định tắt) với `.fps-counter` cập nhật ≤2 lần/giây.
+
+## Quyết định thiết kế
+
+- Tự chiến chạy trong **core** (authority), không phải client loop.
+- Cấu hình tự chiến lưu ở `preferences` (cấu hình chung), đẩy xuống core qua `configureAuto` sẵn có.
+- Mốc "chờ 30 phút" của tinh anh **không** ghi wall-clock vào snapshot khi khởi tạo (giữ tính xác định của replay); mốc "lần đầu bật" giữ trong bộ nhớ world, chỉ mốc sau khi hạ mới lưu.
+- Phím tự chiến = **F**. Giá Hồi Thành Phù = **50 bạc**. Phí dịch chuyển = **30 bạc**.
+- Khối dịch chuyển nhanh dùng class `.travel-row` riêng, không tái dùng `.destination-row` (tránh lẫn với danh sách địa điểm).
+
+## Kiểm chứng đã chạy
+
+| Lệnh | Kết quả |
+| --- | --- |
+| `pnpm typecheck` | PASS |
+| `pnpm lint` | PASS |
+| `pnpm test` | 375/375 pass (26 file), gồm `tests/integration/upgrade-features.test.ts` (29 case mới) |
+| `pnpm validate:content` | PASS |
+| `pnpm build` | PASS |
+| `npx playwright test` | 72/72 pass, gồm `tests/e2e/upgrade-features.spec.ts` (7 case mới) |
+| `pnpm healthcheck` | 5/5 bước đạt, 1/1 kiểm tra bundle đạt (14.0s) |
+
+## Chưa tự kiểm chứng được
+
+- A2/A3 là hiệu ứng canvas: chỉ xác nhận qua hành vi UI (không sinh DOM cho từng con quái, công tắc lưu được), **chưa đo pixel** màu số sát thương hay thời lượng nháy đỏ trên màn hình thật.
+- Chưa chờ 30 phút thật cho tinh anh; đã kiểm bằng cách đặt mốc trong quá khứ (đúng phương pháp đặc tả cho phép).
+- Chưa đo FPS/thermal trên thiết bị thật; FPS chỉ đọc trong headless SwiftShader.
+- Bản lưu dự phòng: test tự động không chờ được 5 phút, nên chỉ khẳng định `BACKUP_SLOTS = 3` và luồng export/import; việc khôi phục thật đã kiểm ở E2E `streaming.spec.ts` (làm hỏng bản chính 1 lần).
+
+# Phiên sửa lỗi "hệ thống nhiệm vụ KHÔNG tăng tiến độ" (QA 21/10/2026)
+
+Scope: Toàn bộ chuỗi nhiệm vụ — `packages/game-core` (đếm tiến độ + ghi nhận hội thoại), `packages/game-protocol` (event `quest` + `questTalks`), `packages/game-storage` (lưu `questTalks`), `packages/game-content` (nhãn mục tiêu), `apps/web` (nguồn tiến độ duy nhất, toast, panel + khung theo dõi), `apps/web/src/styles/game.css` (sửa layout hội thoại ở màn ngang thấp).
+
+## Nguyên nhân gốc rễ (có bằng chứng đo được)
+
+**Bộ đếm tiến độ KHÔNG hỏng. Nguyên nhân là UI ở màn ngang thấp (≤1000×550).**
+
+- Đo tại viewport 844×390: khung hội thoại `.panel-body` có `clientHeight=281` nhưng `scrollHeight=571`. Nút "Nhận nhiệm vụ" nằm ở `top=353.39, bottom=391.89` trong khi `.panel-body` kết thúc ở `357.5` → chỉ **4.1px trong 38.5px** của nút nằm trong vùng cuộn → người chơi **không bấm được** → nhiệm vụ **không bao giờ được nhận**.
+- Vì `s.quests` rỗng nên chuỗi "Nói chuyện với trưởng thôn" trong `App.tsx` (chỉ hiện khi `activeQuest` undefined) hiện vĩnh viễn → đúng triệu chứng QA báo.
+- Mọi giả thuyết (a)–(g) trong đề bài đều **sai** với code hiện tại: `die()` vẫn gọi `advanceObjective`; so khớp theo `d.id` (id ổn định) chứ không theo tên hiển thị; `s.quests` là nguồn duy nhất; sự kiện trước khi accept bị bỏ qua là cố ý; `forest-scout.target = "forest"` đúng id map; save giữ `quests`; tracker đọc snapshot sống.
+
+## Đã triển khai
+
+- **Layout hội thoại mobile** (`apps/web/src/styles/game.css`): thêm block `@media (max-width:1000px) and (max-height:550px)` thu gọn cảnh thoại + danh sách nhiệm vụ để nút "Nhận nhiệm vụ" luôn nằm trọn trong khung cuộn.
+- **Nguồn tiến độ duy nhất** (`apps/web/src/ui/quest-progress.ts`, file mới): `questDisplays(snapshot)`, `trackedQuest(displays)`, `questStepLabel(display)`, `questOrder(index)` (2 chữ số). Cả Panel Nhiệm vụ (`Panels.tsx`) và khung theo dõi (`App.tsx`) đọc từ đây → không thể lệch nhau. Kèm `data-quest-id/order/status/progress` để test E2E đối chiếu hai nơi.
+- **Toast tiến độ** (`packages/game-protocol` thêm event `"quest"`; `packages/game-core/src/engine/world.ts` `advanceObjective` phát `${questTargetLabel(d)} ${progress}/${count}`): hiện "Sơn tặc 2/5" qua cơ chế toast sẵn có + dòng log `[Hệ thống]`. Toast đổi thành hàng đợi tối đa 3 dòng (`.toast-stack`) để nhiều nhiệm vụ cùng target đều hiện được.
+- **Bước hội thoại**: core ghi `questTalks[npcId] = tick` khi tương tác NPC; `questTalks` thêm vào `CharacterProgress` (optional → bản lưu cũ nạp được), storage schema, `progressKeys`, `projectView`. Tracker chuyển từ "Nói chuyện với trưởng thôn" → "Nhận nhiệm vụ: <tên>" ngay sau khi nói chuyện.
+- **Số thứ tự 2 chữ số**: `questOrder()` dùng `padStart(2,"0")` cho cả 28 nhiệm vụ ở Panel, khung theo dõi và `QuestOffers.tsx` → hết lỗi "010".
+- **Nhãn mục tiêu** (`packages/game-content/src/index.ts`): `questObjectiveLabel` hỗ trợ thêm `talk`/`equip`; thêm `questTargetLabel` cho thông báo ngắn; `validateContent` kiểm tra target của `talk`/`equip`.
+
+## Kết luận vụ "Đạo Bào Thanh Vân"
+
+**Đồ khởi đầu theo thiết kế, KHÔNG phải phần thưởng phát sớm.** Bằng chứng: `createGame` cấp sẵn 1 chiếc `robe` cho nhân vật mới (`packages/game-core/src/engine/world.ts`, inventory `characterId + ":robe"`), đồng thời NV01 cũng thưởng `robe` (`packages/game-content/src/index.ts`). QA nhận thêm 1 chiếc nữa khi claim NV01 là đúng thiết kế. **Giữ nguyên, không xóa.**
+
+## Kiểm chứng đã chạy
+
+| Lệnh                        | Kết quả                                                    |
+| --------------------------- | ---------------------------------------------------------- |
+| `pnpm typecheck`            | PASS                                                       |
+| `pnpm lint`                 | PASS                                                       |
+| `pnpm test`                 | 346/346 pass (25 file), gồm `tests/integration/quest-progress.test.ts` (15 case mới) và 2 case storage mới |
+| `pnpm validate:content`     | PASS                                                       |
+| `pnpm build`                | PASS                                                       |
+| `npx playwright test`       | 65/65 pass, gồm `tests/e2e/quest-progress.spec.ts` (3 case mới ở 844×390) |
+| `pnpm healthcheck`          | 5/5 bước đạt, 1/1 kiểm tra bundle đạt (20.6s)            |
+
+## Chưa tự kiểm chứng được
+
+- Chưa chạy trên bản live `https://vltk.quanhd.net/` (chỉ build local); cần deploy để QA xác nhận lại trên bản phát hành.
+- Chưa đo trên thiết bị Android/iOS thật; số đo layout đều lấy ở Chromium 844×390.
+
+## Bước tiếp theo
+
+1. Deploy bản build mới và để QA chạy lại đúng kịch bản: nhận NV01 → hạ 5 Sơn tặc (0/5 → 5/5) → nhận thưởng 1 lần → reload → không nhận lại được.
+2. Tiếp tục `docs/WORK_QUEUE.md` — G1 (hành trình đầy đủ PC/mobile) và F1 (100+ quest).
+
+---
+
+# Phiên Rework Game HUD & Functional Accessibility — 21/10/2026 (mới nhất)
+
+Scope: Tầng UI client (`apps/web/src/app/App.tsx`, `apps/web/src/styles/overhaul.css`, `tests/e2e/hud-accessibility.spec.ts`). Cải tiến bố cục HUD và hệ thống truy cập chức năng trong game: đưa 6 chức năng cốt lõi thường dùng ra thanh truy cập nhanh ngoài HUD; tổ chức lại menu ba gạch thành 4 nhóm ngữ nghĩa; di chuyển menu tránh che minimap; bảo đảm tương thích responsive trên 5 viewport (desktop-wide 1720×860, laptop 1366×768, tablet 1024×768, mobile-landscape 844×390, mobile-portrait 390×844) mà không đổi theme, icon, backend, GameSession, combat hay save schema.
+
+## Đã triển khai
+
+- **Thanh truy cập nhanh (Quick Access Toolbar)**:
+  - Đưa 6 chức năng ưu tiên hàng đầu ra ngoài HUD: Nhân vật (`character`, phím tắt `C`), Hành trang (`inventory`, phím tắt `I`), Võ học (`skills`, phím tắt `K`), Nhiệm vụ (`quests`, phím tắt `J`), Bản đồ (`map`, phím tắt `M`), Kho đồ (`warehouse`).
+  - Tái sử dụng `togglePanel()` và state quản lý modal chung hiện có; hiển thị trạng thái active/pressed đồng bộ khi panel đang mở.
+  - Thêm nút toggle thu gọn/mở rộng thanh truy cập nhanh (`quickCollapsed`) với icon Chevron kiếm hiệp để tiết kiệm không gian khi người chơi muốn giao diện gọn.
+  - Phân tách rõ ràng giữa cụm Quick Access và cụm System Actions (`offline-status`, `save-state`, `compactHud`, `miniExpanded`, `settings`, `mobileMenu`) qua đường kẻ phân cách mang phong cách cổ trang vàng đồng.
+- **Tổ chức lại Menu ba gạch (4 nhóm chức năng)**:
+  - Nhóm 1 (Nhân vật & Vật phẩm): Nhân vật, Hành trang, Kho đồ, Nhân vật khác.
+  - Nhóm 2 (Chiến đấu & Phát triển): Võ học, Nghề nghiệp, Công xưởng.
+  - Nhóm 3 (Khám phá & Thông tin): Nhiệm vụ, Bản đồ, Cẩm nang.
+  - Nhóm 4 (Hệ thống): Tắt/bật âm thanh, Thiết lập (kèm nút Cập nhật game khi có SW update).
+  - Bổ sung thanh tiêu đề có tên "Giang Hồ Ký", hiển thị ngân lượng hiện có (bạc) và nút đóng menu `X` trực quan.
+  - Đổi layout menu từ grid 3 cột đơn điệu sang cấu trúc nhóm flex column kết hợp grid phân cấp (grid-4, grid-3, grid-2) với tiêu đề phân nhóm khắc hoa văn vàng đồng cổ điển.
+- **Tránh che khuất Minimap & Tối ưu Responsive**:
+  - Trên desktop/laptop/tablet/mobile landscape: Neo `mobile-menu` sang bên trái của minimap (`right: calc(14px + 176px)` khi thu nhỏ, `+ 292px` khi mở rộng bản đồ nhỏ), giữ trọn vẹn minimap, toạ độ và đồng hồ giờ giang hồ không bị che khuất khi menu mở.
+  - Trên tablet (1024×768): Điều chỉnh breakpoint `@media (max-width: 1200px)` và định vị `.location-heading` sang `left: 285px`, tạo khoảng đệm thông thoáng giữa thông tin nhân vật và thanh HUD.
+  - Trên mobile landscape (844×390): Tinh chỉnh kích thước nút HUD (33–34px) và giới hạn độ rộng `.location-heading`, loại bỏ hoàn toàn hiện tượng chồng lấn với thanh chức năng.
+  - Trên mobile portrait (390×844): Chuyển `.hud-actions` sang bố cục 2 hàng dọc (`flex-direction: column; align-items: flex-end`) gồm hàng 1 (Hệ thống) và hàng 2 (Truy cập nhanh); dời `.right-sidebar` (minimap) xuống `top: 138px` và `mobile-menu` xuống `top: 196px`. Ngăn chặn hoàn toàn hiện tượng tràn ngang (horizontal overflow) và cuộn ngang trên màn hình hẹp; menu mở bên dưới minimap mà không che khuất minimap hay khu vực joystick/chiến đấu.
+- **Gỡ bỏ lớp phủ Vignette CSS dìm màu (`.world-viewport:after`)**: Tắt lớp bóng mờ inset tối viền trên viewport canvas trong `overhaul.css`, giúp toàn bộ màn hình sáng rõ, trong trẻo và sắc nét hơn.
+- **Sửa triệt để lỗi lớp phủ hình chữ nhật lơ lửng ở giữa màn hình (`EnvironmentRenderer.ts`, `ForegroundRenderer.ts`)**: Trong Phaser 3, camera zoom (0.86 trên mobile, hoặc khi lăn chuột trên PC) làm các đối tượng `setScrollFactor(0)` bị co lại quanh tâm camera. Đã cập nhật tọa độ tâm và kích thước `(viewW, viewH)` theo `1 / cam.zoom`, ghim chính xác lớp đêm/sương phủ kín 100% viewport và đưa tán lá tiền cảnh lên sát mép trên màn hình, triệt tiêu hoàn toàn viền hộp chữ nhật dìm màu ở giữa màn hình.
+- **Bảo toàn ngôn ngữ thiết kế**:
+  - Giữ nguyên màu nền cổ trang kiếm hiệp xanh đậm `#182b22bb` / `#1c3329fa`, viền đồng `#b59b5a`, ánh sáng vàng hoàng kim `#f5d78a`, typography serif/Arial, hiệu ứng hover, active glow và toàn bộ icon có sẵn (`lucide-react`).
+
+## Kiểm chứng đã chạy
+
+- `tests/e2e/hud-accessibility.spec.ts` (mới): kiểm thử trên cả 5 viewport theo yêu cầu:
+  - 1720×860 (desktop-wide): PASS
+  - 1366×768 (desktop-laptop): PASS
+  - 1024×768 (tablet): PASS
+  - 844×390 (mobile-landscape): PASS
+  - 390×844 (mobile-portrait): PASS
+  - Xác nhận trực tiếp: mở panel qua thanh nhanh, highlight trạng thái active, mở menu ba gạch, đủ 4 nhóm, tương tác mở panel con từ menu và đóng menu tự động, không chồng lấn minimap (assertion toTheLeft || below).
+  - Ảnh chụp 10 file tại `artifacts/hud-review/` cho trạng thái bình thường và trạng thái menu mở trên cả 5 viewport.
+- `pnpm healthcheck`: **5/5 bước đạt, 1/1 kiểm tra bundle đạt** (21.7s):
+  - `typecheck`: PASS
+  - `lint`: PASS
+  - `test`: PASS 329/329
+  - `validate:content`: PASS 3/3
+  - `validate:assets`: PASS
+  - Bundle `three` vẫn cô lập ở chunk riêng, không lọt vào bundle chính.
+- `pnpm test:e2e`: **56/56 tests đạt** (gồm `game.spec.ts`, `overhaul.spec.ts`, `visual-overhaul.spec.ts`, `full-offline.spec.ts`, `hud-accessibility.spec.ts`). Không có bất kỳ regression nào trên toàn bộ test suite.
+
+## Giới hạn
+
+- Trên màn hình cực hẹp (<360px), số lượng nút hệ thống có thể cần thu gọn thêm tuỳ thuộc vào tỉ lệ màn hình; breakpoint hiện tại đã tối ưu toàn diện từ chuẩn iPhone (390px) trở lên.
+- Phím tắt (C, I, K, J, M) chỉ hiển thị huy hiệu trên màn hình desktop/laptop nơi bàn phím vật lý khả dụng; trên mobile huy hiệu phím tắt được ẩn để giữ giao diện thanh thoát và tránh rối mắt.
+
 # Phiên nút "Xóa bộ nhớ đệm & tải lại" trong Thiết lập — 21/10/2026 (mới nhất)
 
 Scope: tầng client. Thêm nút trong panel Thiết lập để thoát tình trạng điện thoại giữ bản game cũ nhiều giờ do service worker phục vụ từ cache. Không đổi gameplay, không đổi dữ liệu lưu.

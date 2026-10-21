@@ -1,5 +1,6 @@
 import { ArrowRight, Check } from "lucide-react";
 import { quests, getItem } from "@kiem-hiep/game-content";
+import { questOrder } from "./quest-progress";
 import type { GameSnapshot, GameCommand } from "@kiem-hiep/game-protocol";
 export function QuestOffers({
   snapshot: s,
@@ -29,10 +30,13 @@ export function QuestOffers({
     <div className="dialogue-options">
       {available.map((q) => {
         const progress = s.quests.find((p) => p.id === q.id),
-          accept = !progress || progress.status === "claimed";
+          accept = !progress || progress.status === "claimed",
+          order = questOrder(quests.findIndex((d) => d.id === q.id));
         return (
           <article className="npc-quest" key={q.id}>
-            <small>{q.chapter}</small>
+            <small>
+              {order} · {q.chapter}
+            </small>
             <h3>{q.name}</h3>
             <p>{q.description}</p>
             <small>
