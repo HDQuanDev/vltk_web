@@ -1,3 +1,65 @@
+# Phiên healthcheck (endpoint `/healthz` + lệnh `pnpm healthcheck`) — 21/10/2026 (mới nhất)
+
+Scope: công cụ kiểm tra, không đổi gameplay hay tầng hiển thị. Thêm `apps/web/healthz-plugin.ts` (plugin Vite) gắn `GET /healthz` vào máy chủ dev + preview; thêm `scripts/healthcheck.mjs` và lệnh `pnpm healthcheck`. Repo là PWA tĩnh, `apps/server` chỉ có README nên endpoint được gắn vào máy chủ đang phục vụ app thay vì thêm service mới.
+
+## Đã triển khai
+
+- `GET /healthz` → JSON `status/service/mode/version/packageManager/three/git/process/bundle.checks/warnings`. **200** khi khoẻ, **503** khi preview thiếu `apps/web/dist`; `?full=1` thêm tên + kích thước chunk; hỗ trợ `HEAD`; `cache-control: no-store`; quét bundle có cache 5 giây nên monitor gọi liên tục không tốn I/O.
+- `pnpm healthcheck`: mặc định chạy `typecheck`, `lint`, `test`, `validate:content`, `validate:assets`; `--fast` chỉ typecheck + lint; `--full` thêm `build` + `test:e2e`; `--runtime` thêm verify headless 3D và 2D (`scripts/verify-renderer-3d.mjs`); `--json` cho CI. In môi trường (node/pnpm/git/three), bảng bundle kèm gzip, và kiểm tra ràng buộc "three không nằm trong bundle chính" (quét `WebGLRenderer` trong chunk `index-*`). Mã thoát 1 khi có bước hỏng, in 25 dòng log cuối của bước hỏng.
+
+## Kiểm chứng đã chạy
+
+- Dev server (`vite --port 5199`): `GET /healthz` → **200**, `bundle.checks.threeInSeparateChunk: true`; `HEAD` → 200 không body.
+- Preview server (`vite preview --port 5299`): **200**, `?full=1` trả `main 712.525 B` / `three 528.739 B`.
+- Preview khi tạm đổi tên `apps/web/dist` → **503**, `status: "unavailable"`, warning "Không thấy apps/web/dist…"; đã khôi phục `dist` ngay sau đó.
+- `pnpm healthcheck` → **5/5 bước đạt, 1/1 kiểm tra bundle đạt** (21.9s). Đã chạy thử `--json` và nhánh hỏng (thay một bước bằng script không tồn tại → exit 1, in log cuối).
+
+## Giới hạn
+
+- Endpoint chỉ tồn tại trên máy chủ dev/preview của Vite. Bản deploy tĩnh (PWA trên CDN) **không có** endpoint này; muốn monitor môi trường production phải có backend/service thật.
+- Endpoint chỉ đọc dữ liệu sẵn (package.json, git, bundle), **không** chạy typecheck/test, nên không thay thế `pnpm healthcheck` trong CI.
+
+# Phiên bộ hiển thị 3D (Three.js) chạy song song với bản Phaser 2D — 21/10/2026 (mới nhất)
+
+Scope: chỉ tầng hiển thị `apps/web/src/game/` (+ `preferences.ts`, `bootstrap.ts` rẽ nhánh). Không sửa `packages/`, không sửa `App.tsx`/`src/ui/`, không đổi luật chơi. Thêm 2 pref trong `ClientPreferences`: `renderMode` ("2d" | "3d", mặc định "2d") và `shadows3d` (mặc định false). **Đổi `renderMode` chỉ có hiệu lực ở lần `bootGame` kế tiếp** (không chuyển nóng giữa phiên). **Chưa có nút bật/tắt trong panel Thiết lập** vì `src/ui/` nằm ngoài phạm vi — hiện đổi được qua localStorage/`setPreferences`.
+
+## Đã triển khai
+
+- `apps/web/src/game/three/` (mới, 16 file): `ThreeWorld.ts` (khung bộ hiển thị), `coords.ts`, `camera-constants.ts`, `input-constants.ts`, `element-colors.ts`, `Terrain3D.ts`, `Props3D.ts`, `Actors3D.ts`, `atlas-cache.ts`, `instanced-material.ts`, `WorldObjects3D.ts`, `Effects3D.ts`, `Weather3D.ts`, `daynight.ts`, `Input3D.ts`, `dom-overlay.ts`.
+- `bootstrap.ts`: rẽ nhánh theo `getPreferences().renderMode`; nhánh 3D nạp lười `import("./three/ThreeWorld")`, mọi lỗi (nạp module hoặc dựng WebGLRenderer) → hạ pref về "2d", khởi động Phaser 2D **và** gọi `callbacks.onError`. Nhánh "2d" giữ nguyên từng dòng hành vi cũ.
+- `renderers/ChunkWorldRenderer.ts`: `terrainCanvas` được `export` (chỉ thêm từ khóa) và nhận thêm tham số tuỳ chọn `bounds` (mặc định `null` → dùng `chunkBounds` như cũ) để bản 3D vẽ đúng vùng 768×384. **Bản 2D không đổi hành vi.**
+- `preferences.ts`: `renderMode` + `shadows3d` (interface, default, whitelist nạp lại).
+
+### Quyết định kỹ thuật quan trọng
+
+- **Camera đặt trên đường phân giác**: offset `(d, h, d)` với `d = 12`, `h = d·√(2/3) ≈ 9.798` (thay cho `(0, 19, 13.5)` trong thiết kế). Chỉ khi đó phép chiếu phối cảnh của three mới khớp **đúng** phép chiếu iso 2D (`worldToScreen` 48:24) — nhờ đó texture đất vẽ sẵn theo iso không bị méo và hướng nhìn khớp (phải màn hình = world `(+x,−y)`). Offset như thiết kế làm quảng trường thành hình vuông.
+- **Công thức neo chân**: `center = H·(originY − 0.5)` với `originY = feetY/frameHeight = 246/256`; đường chân sprite nằm đúng world y = 0 (có test đơn vị).
+- **Lật texture đất**: `v = 1 − (sy − bounds.y)/bounds.height`; ánh xạ world→pixel là hàm affine nên gán UV ở 4 đỉnh là chính xác cả trong tam giác.
+- **Bảng màu nguyên tố**: sao chép sang `three/element-colors.ts` (file gốc `animations/atlas.ts` import Phaser, không import trực tiếp để tránh kéo Phaser vào bundle three). Có test so khớp giá trị.
+
+## Kiểm chứng đã chạy
+
+- `pnpm typecheck` PASS. `pnpm lint` PASS. `pnpm test` **325/325** (23 file; thêm 7 case `tests/integration/renderer-3d.test.ts`). `pnpm validate:content` PASS. `pnpm build` PASS. `pnpm validate:assets` PASS, không lỗi mới.
+- **Bundle**: `three` nằm ở chunk riêng `dist/assets/ThreeWorld-*.js` (528.74 kB / gzip 135.16 kB); bundle chính `index-*.js` **không đổi** (712.53 kB, giống hệt trước khi thêm three) → người chơi ở chế độ 2D không tải three.
+- **Số đo 3D** (`scripts/verify-renderer-3d.mjs`, headless Chromium + SwiftShader, 1366×768, quality high, Tân Thủ Thôn): renderer `ThreeJS`, **60 FPS**, renderMs 0.68–0.87, `renderer.info.render.calls` = **48**, triangles 680, geometries 37, textures 30, programs 11, chunks 25/25, terrain CPU 28.1 MiB. Ảnh: `artifacts/renderer-3d/3d/`.
+- **Số đo mobile** (844×390, DPR 2, quality medium): renderer `ThreeJS`, **60 FPS**, renderMs 0.77, draw calls 52, không lỗi.
+- **Số đo 2D đối chiếu** (cùng script, `MODE=2d`): renderer `WebGL`, 60 FPS, renderMs 0.10, textures 85, chunks 26/32 — hành vi 2D không đổi.
+- **Đổi map 4 vòng** (làng→rừng→làng→rừng): textures GPU 29 → 27 → 29 → 27 (dao động theo loại prop/atlas của từng map, **không tích luỹ**). Đã sửa 2 nguồn rò: texture SVG của NPC không được dispose, và atlas nạp dở tạo texture sau khi đổi map (thêm số thế hệ trong `atlas-cache.ts`).
+- **Fallback WebGL** (`scripts/verify-renderer-3d-fallback.mjs`): chặn `getContext("webgl")` → pref tự hạ về "2d", thông điệp `Không khởi động được bộ hiển thị 3D (WebGL bị chặn…). Đã chuyển về bản 2D.`, không có pageerror.
+- **Ảnh đối chiếu** (`scripts/verify-renderer-3d-behaviour.mjs`, ảnh trong `artifacts/renderer-3d/behaviour/`):
+  - `01-directions.png`: 8 nhân vật H0–H7 đặt ở 8 hướng `Direction8` — mỗi hướng nằm đúng vị trí world (theo phép chiếu iso, `+x` sang phải, `+y` xuống dưới).
+  - `02-combat.png`: **chữ bay sát thương hiện** ("4", "32" bay trên quái), quái chết nằm nghiêng **mờ 0.55**, probe "Boss" vẽ lớn hơn quái thường, HUD mục tiêu "Sơn tặc Cấp 1" cập nhật HP 33/65.
+  - `03-night-rain.png`: nền chuyển sang xanh đêm (minimap ghi "Giờ Tý"), **mưa hiện bằng `LineSegments`** rơi trong hộp quanh người chơi.
+  - `04-loot.png`: nhãn NPC/portal/nút tài nguyên hiện đúng vị trí.
+
+## Giới hạn còn lại
+
+- **`onError` khi 3D lỗi khiến `App.tsx` hiện màn hình lỗi** (có nút "Thử lại") dù bản 2D đã khởi động được. `App.tsx` nằm ngoài phạm vi sửa của phiên này; cần một thay đổi nhỏ ở `App.tsx` (giữ `error` ở mức cảnh báo thay vì chặn game) mới cho chơi liên tục ngay sau lỗi 3D. Pref `renderMode` **đã** tự hạ về "2d" nên lần tải lại vào thẳng bản 2D.
+- **Số đo hiệu năng chạy trên SwiftShader (phần mềm), không phải GPU thật**; chưa đo trên thiết bị thật. Ngân sách "≤200 draw calls" đạt (48) và "≥60 FPS" đạt trên môi trường đo, nhưng cần xác nhận lại trên GPU thật.
+- **Chưa kiểm chứng bằng mắt**: quái nháy sáng 70ms, nhặt đồ khi loot chồng quái, nói chuyện NPC, qua cổng, trời tối dần theo `worldClock` — đều đã có mã theo đúng số liệu bản 2D nhưng mới chỉ chụp được ảnh tĩnh ở Tân Thủ Thôn.
+- **Loot rơi đất chưa kiểm chứng được trong bản 3D**: script thử nghiệm đặt loot thủ công vào save rồi import — `snapshot.groundLoot` bị mất **ngay ở đường import của `App.tsx`** (đã kiểm tra: chế độ **2D cũng không thấy** loot đó → vấn đề nằm ở import path, không phải ở bộ hiển thị 3D; `validateSave` → `GameWorld` → `projectView` → session đều giữ loot, đã có test Node). Bản 3D đọc `snapshot.groundLoot` y hệt bản 2D nên khi loot tới được snapshot thì hiển thị như bản 2D.
+- **Vật thể trang trí còn thiếu so với bản 2D** (ghi rõ trong `docs/visual/RENDERER_3D.md`): đốm sáng đèn lồng ban đêm, vệt đuôi đạn bay, vòng đất lan của boss (quake/storm), tiền cảnh parallax, camera nhìn trước/zoom chuột, cao độ địa hình, dự phòng atlas thủ tục.
+- **Prop không có loại `rock`/`lantern`/`gate`** trong `propAssets` (chỉ house/tree/cherry/bamboo) → loại prop này không hiện ở bản 3D. Bản 2D vẽ chúng bằng texture thủ tục (`renderers/art.ts`).
 # Phiên hiệu ứng "giả 3D" môi trường (đèn lồng, hoàng hôn, sương, tiền cảnh, camera) — 20/10/2026 (mới nhất)
 
 Scope: chỉ tầng hiển thị `apps/web/src/game/` + `preferences.ts`. Không sửa `packages/`, không sửa `App.tsx`/`src/ui/`, không đổi luật chơi. 5 công tắc mới trong `ClientPreferences` (mặc định bật, lưu chung khóa `kiem-hiep-client-v1`); **chưa có nút bật/tắt trong panel Thiết lập** vì `src/ui/` nằm ngoài phạm vi được sửa — hiện chỉ đổi được qua localStorage/`setPreferences`.

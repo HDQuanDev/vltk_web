@@ -31,6 +31,7 @@
 
 ```sh
 pnpm typecheck     # monorepo + game-core không DOM
+pnpm healthcheck   # gom typecheck/lint/test/validate + kiểm tra three ở chunk riêng
 pnpm lint
 pnpm test          # vitest unit/integration
 pnpm validate:content

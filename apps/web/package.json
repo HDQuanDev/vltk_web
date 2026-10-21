@@ -12,6 +12,7 @@
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "phaser": "3.90.0",
+    "three": "0.180.0",
     "lucide-react": "^0.468.0",
     "workbox-window": "^7.4.1",
     "@kiem-hiep/game-core": "workspace:*",
@@ -19,5 +20,8 @@
     "@kiem-hiep/game-session": "workspace:*",
     "@kiem-hiep/game-storage": "workspace:*",
     "@kiem-hiep/game-protocol": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/three": "0.180.0"
   }
 }

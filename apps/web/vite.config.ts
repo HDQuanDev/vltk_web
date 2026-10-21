@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwind from "@tailwindcss/vite";
+import { healthz } from "./healthz-plugin";
 import { VitePWA } from "vite-plugin-pwa";
 import { fileURLToPath, URL } from "node:url";
 /**
@@ -18,6 +19,7 @@ export default defineConfig({
   root: fileURLToPath(new URL(".", import.meta.url)),
   plugins: [
     react(),
+    healthz(),
     tailwind(),
     VitePWA({
       registerType: "prompt",

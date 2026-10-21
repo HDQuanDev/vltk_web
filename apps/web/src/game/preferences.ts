@@ -18,6 +18,14 @@ export interface ClientPreferences {
   parallaxForeground: boolean;
   /** Camera nhìn trước theo hướng di chuyển + hơi phóng khi chạy nhanh. */
   cameraLookahead: boolean;
+  /**
+   * Bộ hiển thị: "2d" (Phaser, mặc định) hoặc "3d" (Three.js).
+   * Đổi giá trị này chỉ có hiệu lực ở lần `bootGame` kế tiếp — không chuyển
+   * nóng giữa phiên, vì cả hai bộ đều giữ chính canvas và vòng lặp riêng.
+   */
+  renderMode: "2d" | "3d";
+  /** Bóng đổ thật trong bộ hiển thị 3D (mặc định tắt, chỉ bật khi đo được). */
+  shadows3d: boolean;
 }
 export const defaultPreferences: ClientPreferences = {
   quality: "auto",
@@ -33,6 +41,8 @@ export const defaultPreferences: ClientPreferences = {
   depthFog: true,
   parallaxForeground: true,
   cameraLookahead: true,
+  renderMode: "2d",
+  shadows3d: false,
 };
 let current: ClientPreferences = { ...defaultPreferences };
 try {
@@ -60,6 +70,9 @@ try {
     "cameraLookahead",
   ] as const)
     if (typeof raw[key] === "boolean") current[key] = raw[key];
+  if (["2d", "3d"].includes(raw.renderMode))
+    current.renderMode = raw.renderMode;
+  if (typeof raw.shadows3d === "boolean") current.shadows3d = raw.shadows3d;
 } catch {
   /* Các tùy chọn client có thể dùng mặc định, không ảnh hưởng bản lưu RPG. */
 }

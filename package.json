@@ -16,6 +16,7 @@
     "format": "prettier --write .",
     "report:content": "node scripts/audit-content.mjs",
     "validate:assets": "node scripts/validate-assets.mjs",
+    "healthcheck": "node scripts/healthcheck.mjs",
     "profile:world": "node scripts/profile-world.mjs",
     "profile:core": "node scripts/profile-navigation.mjs",
     "profile:footprint": "node scripts/profile-footprint.mjs"

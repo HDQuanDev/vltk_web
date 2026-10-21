@@ -49,19 +49,27 @@ function terrainIndex(map: MapDefinition) {
   }
   return index;
 }
-function terrainCanvas(
+/**
+ * Vẽ mặt đất của một chunk ra canvas (dùng chung cho bản 2D và bản 3D).
+ * Bản 3D lấy chính canvas này làm texture để màu đất/đường/nước/plaza khớp 100%.
+ *
+ * `bounds` cho phép bản 3D dùng vùng vẽ CHÍNH XÁC (không viền thừa của
+ * `chunkBounds`): mặc định `null` = dùng `chunkBounds` như bản 2D.
+ */
+export function terrainCanvas(
   map: MapDefinition,
   chunk: ChunkPosition,
   resolution: number,
   material: CanvasImageSource,
+  bounds?: { x: number; y: number; width: number; height: number },
 ) {
-  const bounds = chunkBounds(chunk.x, chunk.y),
+  const view = bounds ?? chunkBounds(chunk.x, chunk.y),
     c = document.createElement("canvas");
-  c.width = Math.ceil(bounds.width * resolution);
-  c.height = Math.ceil(bounds.height * resolution);
+  c.width = Math.ceil(view.width * resolution);
+  c.height = Math.ceil(view.height * resolution);
   const g = c.getContext("2d")!;
   g.scale(resolution, resolution);
-  g.translate(-bounds.x, -bounds.y);
+  g.translate(-view.x, -view.y);
   const terrain = terrainIndex(map);
   const pattern = g.createPattern(material, "repeat")!;
   pattern.setTransform(new DOMMatrix([0.6, 0.3, -0.6, 0.3, 0, 0]));
@@ -177,7 +185,7 @@ function terrainCanvas(
       }
       g.restore();
     }
-  return { canvas: c, bounds };
+  return { canvas: c, bounds: view };
 }
 export class ChunkWorldRenderer {
   private map!: MapDefinition;

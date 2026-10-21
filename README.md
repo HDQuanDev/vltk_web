@@ -93,6 +93,17 @@ pnpm exec playwright install chromium
 pnpm test:e2e
 ```
 
+Một lệnh gom các cổng kiểm tra trên (thêm tùy chọn `--fast`, `--full`, `--runtime`, `--json`):
+
+```sh
+pnpm healthcheck
+```
+
+Khi dev/preview server đang chạy, `GET /healthz` trả JSON trạng thái nhanh (200 khi khoẻ, 503
+khi preview thiếu `dist`); thêm `?full=1` để có danh sách chunk. Endpoint do
+`apps/web/healthz-plugin.ts` gắn vào Vite nên chỉ tồn tại trên máy chủ dev/preview — deploy
+tĩnh không có endpoint này.
+
 Playwright tự mở/đóng preview4173 từ build hiện có. Báo cáo tại `playwright-report`; artifacts có ảnh/assetalpha/streaming/soak/balance. Xem [verification](docs/roadmap/verification.md) cho kết quả cuối và giới hạn bằng chứng. Các bài fixture không được tính là fullgame acceptance; có hành trình mới không grant qua UI trênPC/mobile.
 
 Dev-only, không nằm trong productionbuild và không cấp debug API gameplay. `pnpm profile:core` đo navigation/simulation/clone trong Node; `pnpm profile:footprint` đo publish của world đã thăm tới 40map (map tổng hợp tái dùng monster definition thật, không phải content phát hành) tại `artifacts/world-footprint.json`. Khi dev server đang chạy, `pnpm profile:world` tái tạo báo cáo60visits/6mapchanges cho mỗi viewportPC/mobile tại `artifacts/streaming-browser.json`:
