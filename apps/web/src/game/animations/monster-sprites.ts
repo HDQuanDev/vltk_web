@@ -72,13 +72,14 @@ export const monsterFacing = spriteFacing;
 export function monsterSpriteState(
   state: AnimationState,
   elapsedTicks: number,
-  options: { lowHp?: boolean; fast?: boolean } = {},
+  options: { lowHp?: boolean; fast?: boolean; distancePx?: number } = {},
 ): SpriteStateName {
   return spriteStateName(state, elapsedTicks, {
     lowHp: options.lowHp,
     fast: options.fast,
     walkFps: monsterSpriteManifest.walkFps,
     runFps: monsterSpriteManifest.runFps,
+    distancePx: options.distancePx,
   });
 }
 export function monsterSpriteUrl(
@@ -102,13 +103,14 @@ export function monsterSpriteFrame(
   state: AnimationState,
   direction: Direction8,
   elapsedTicks: number,
-  options: { lowHp?: boolean } = {},
+  options: { lowHp?: boolean; distancePx?: number } = {},
 ): MonsterSpriteFrame | null {
   if (!hasMonsterSprites(definitionId)) return null;
   const { facing, flipX } = spriteFacing(direction);
   const spriteState = monsterSpriteState(state, elapsedTicks, {
     lowHp: options.lowHp,
     fast: isFastMonster(definitionId),
+    distancePx: options.distancePx,
   });
   return {
     url: monsterSpriteUrl(definitionId, facing, spriteState),

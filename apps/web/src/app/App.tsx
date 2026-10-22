@@ -69,6 +69,7 @@ import { registerSW } from "virtual:pwa-register";
 import { Panels, type PanelName } from "../ui/Panels";
 import { ArtIcon } from "../ui/ArtIcon";
 import { getPreferences } from "../game/preferences";
+import { APP_BUILD_LABEL } from "./version";
 import {
   playEvent,
   syncAudio,
@@ -1486,9 +1487,8 @@ export default function App() {
           }}
         />
       </div>
-      <div className="game-build">
-        BẢN OFFLINE <span>·</span> v0.5.0
-      </div>
+      {/* Chuỗi phiên bản: nguồn duy nhất ở app/version.ts, không gõ tay ở đây. */}
+      <div className="game-build">{APP_BUILD_LABEL}</div>
       {mobileMenu && (
         <nav
           className={`mobile-menu ${miniExpanded ? "minimap-is-expanded" : ""}`}

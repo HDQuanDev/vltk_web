@@ -212,6 +212,13 @@ describe("Combat v2: projectile, cast, effect pipeline", () => {
   it("actor thứ hai nhận đúng EXP, loot và thay đồ của mình", () => {
     const w = setup("wudang"),
       other = createGame("Bạn Đồng Hành", "shaolin", "second-actor");
+    // Nhân vật mới không còn Đạo Bào trong túi: thêm tường minh để kiểm tra
+    // "actor khác mặc đồ của mình".
+    other.inventory.push({
+      id: "second-actor:robe",
+      definitionId: "robe",
+      quantity: 1,
+    });
     other.entities[other.playerId].x = 15;
     other.entities[other.playerId].y = 14;
     const id = w.addPlayer(other),
@@ -231,8 +238,8 @@ describe("Combat v2: projectile, cast, effect pipeline", () => {
     send(w, { type: "equip", instanceId: robe.id }, id);
     expect(w.state.actors[id].equipment.armor.id).toBe(robe.id);
     expect(w.state.equipment.armor).toBeUndefined();
-    send(w, { type: "equip", instanceId: w.state.inventory[2].id }, id);
-    expect(w.state.inventory).toHaveLength(3);
+    send(w, { type: "equip", instanceId: w.state.inventory[1].id }, id);
+    expect(w.state.inventory).toHaveLength(2);
   });
   it("server host có thể vô hiệu hóa pause; offline pause dừng RNG và thời tiết", () => {
     const w = setup();

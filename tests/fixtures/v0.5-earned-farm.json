@@ -39,11 +39,6 @@
       "quantity": 99
     },
     {
-      "id": "full-journey:item:15",
-      "definitionId": "robe",
-      "quantity": 1
-    },
-    {
       "id": "full-journey:item:20",
       "definitionId": "ore",
       "quantity": 3
@@ -84,7 +79,7 @@
       ]
     },
     "armor": {
-      "id": "full-journey:robe",
+      "id": "full-journey:item:15",
       "definitionId": "robe",
       "quantity": 1
     },
@@ -232,8 +227,8 @@
       "casting": null,
       "brain": "idle",
       "threat": {
-        "village:bandit:0": 2,
-        "village:bandit:1": 2,
+        "village:bandit:0": 5,
+        "village:bandit:1": 4,
         "forest:wolf:2": 12,
         "forest:wolf:3": 13,
         "forest:archer:5": 4,

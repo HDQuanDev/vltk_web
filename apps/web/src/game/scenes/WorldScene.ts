@@ -17,7 +17,25 @@ import {
   groundTextureAsset,
   actorSpriteManifest,
 } from "@kiem-hiep/game-content";
-import { worldToScreen, screenToWorld, distance } from "@kiem-hiep/game-core";
+import {
+  worldToScreen,
+  screenToWorld,
+  distance,
+  TICK_RATE,
+} from "@kiem-hiep/game-core";
+import {
+  ENABLE_MOTION_SMOOTHING,
+  HITSTOP_MAX_FIGHTERS,
+  HITSTOP_MS,
+  KNOCKBACK_ELITE_PX,
+  KNOCKBACK_PX,
+  bobOffset,
+  knockbackOffset,
+  lerp,
+  settleBob,
+  shadowScale,
+  shouldAdoptDirection,
+} from "../renderers/motion";
 import {
   hasMonsterSprites,
   isBossMonster,
@@ -65,6 +83,38 @@ export interface WorldCallbacks {
     activeEffects?: number;
   }) => void;
 }
+/**
+ * Trạng thái HIỂN THỊ của một thực thể (Phần B). Không bao giờ ghi ngược vào
+ * logic: va chạm/tầm đánh/lưu game vẫn dùng toạ độ trong snapshot.
+ */
+interface MotionState {
+  init: boolean;
+  mapId: string;
+  /** Tick logic của mốc nội suy hiện tại + thời điểm nhận (ms). */
+  tick: number;
+  tickAt: number;
+  /** Hai đầu mút nội suy (px màn hình) và vị trí hiển thị hiện tại. */
+  prevX: number;
+  prevY: number;
+  nextX: number;
+  nextY: number;
+  x: number;
+  y: number;
+  /** Quãng đường tích luỹ để chọn khung chân + nhún thân. */
+  distance: number;
+  bob: number;
+  /** Hướng đang vẽ (0–7) và hướng đang chờ đủ 100ms. */
+  direction: number;
+  pendingDirection: number;
+  pendingSince: number;
+  /** Trượt lùi hiển thị: mốc bắt đầu (0 = không), hướng đơn vị, trần px. */
+  knockAt: number;
+  knockX: number;
+  knockY: number;
+  knockMax: number;
+  /** Dừng hình cực ngắn: giữ nguyên hiển thị tới mốc này (ms). */
+  frozenUntil: number;
+}
 /** Nguồn ảnh sprite của một actor: quái hoặc nhân vật theo (phái, giới). */
 type SpriteSource =
   | { kind: "monster"; definitionId: string; height: number }
@@ -93,6 +143,8 @@ interface EntityView {
   spriteSource: SpriteSource | null;
   labelY: number;
   barY: number;
+  /** Trạng thái hiển thị của Phần B (nội suy tick, nhún, hướng, trượt lùi). */
+  motion: MotionState;
 }
 export class WorldScene extends Phaser.Scene {
   private environment?: EnvironmentRenderer;
@@ -558,6 +610,7 @@ export class WorldScene extends Phaser.Scene {
       spriteSource,
       labelY,
       barY,
+      motion: this.createMotion(e),
     };
     this.views.set(e.id, view);
     return view;
@@ -574,22 +627,25 @@ export class WorldScene extends Phaser.Scene {
     const eliteScale = e.elite ? ELITE_SCALE : 1;
     if (source) {
       const lowHp = e.maxHp > 0 && e.hp / e.maxHp <= hurtHpRatio;
+      // Hướng vẽ theo hysteresis (B2.4), khung chân theo quãng đường (B2.1).
+      const drawDirection = v.motion.direction as CombatEntity["direction"];
+      const distancePx = v.motion.distance;
       const frame =
         source.kind === "monster"
           ? monsterSpriteFrame(
               source.definitionId,
               e.state,
-              e.direction,
+              drawDirection,
               elapsed,
-              { lowHp },
+              { lowHp, distancePx },
             )
           : actorSpriteFrame(
               source.sectId,
               source.appearance,
               e.state,
-              e.direction,
+              drawDirection,
               elapsed,
-              { lowHp },
+              { lowHp, distancePx },
             );
       const owner =
         source.kind === "monster" ? source.definitionId : source.owner;
@@ -613,7 +669,10 @@ export class WorldScene extends Phaser.Scene {
         .setTexture(v.atlas.key)
         .setOrigin(0.5, 88 / 96)
         .setFlipX(false)
-        .setDisplaySize(v.atlas.width * eliteScale, v.atlas.height * eliteScale);
+        .setDisplaySize(
+          v.atlas.width * eliteScale,
+          v.atlas.height * eliteScale,
+        );
     }
     v.sprite.setFrame(
       animationFrame(
@@ -627,6 +686,8 @@ export class WorldScene extends Phaser.Scene {
   update(time: number, delta: number) {
     if (!this.snapshot) return;
     const updateStart = performance.now();
+    // Mốc thời gian thực dùng cho nội suy 20Hz → 60fps (một lần mỗi khung).
+    const now = updateStart;
     for (const [id, view] of this.views)
       if (
         !this.snapshot.entities[id] ||
@@ -655,21 +716,18 @@ export class WorldScene extends Phaser.Scene {
         continue;
       }
       if (!v) v = this.createView(e);
-      const alpha = 1 - Math.exp(-delta / 65);
-      if (v.container.x === 0 && v.container.y === 0)
-        v.container.setPosition(s.x, s.y);
-      else {
-        v.container.x = Phaser.Math.Linear(v.container.x, s.x, alpha);
-        v.container.y = Phaser.Math.Linear(v.container.y, s.y, alpha);
-      }
-      v.container.setDepth(v.container.y);
+      const display = this.stepMotion(e, v, delta, now);
+      v.container.setPosition(display.x, display.y);
+      v.container.setDepth(display.y);
+      // Nhún thân chỉ tác động sprite; bóng/vòng/nhãn giữ nguyên mặt đất.
+      v.sprite.setY(display.bob);
       this.syncActorSprite(e, v);
       v.container.setAlpha(e.hp <= 0 ? 0.55 : 1);
       v.container.setVisible(true);
       // Bóng theo trạng thái: cast/attack thì nhỏ và nhạt hơn, chết thì mờ hẳn.
       const crouch = e.state === "cast" || e.state === "attack",
         down = e.state === "dead";
-      v.shadow.setScale(crouch ? 0.85 : 1);
+      v.shadow.setScale((crouch ? 0.85 : 1) * shadowScale(display.bob));
       v.shadow.setAlpha(down ? 0.15 : crouch ? 0.22 : 0.4);
       // A2.3: tên tinh anh màu vàng kim (đặt ở createView) và luôn kèm chữ
       // "Tinh Anh" kể cả khi tên dữ liệu không có sẵn cụm đó.
@@ -801,6 +859,157 @@ export class WorldScene extends Phaser.Scene {
       }
     }
   }
+  /** Trạng thái hiển thị ban đầu cho một view mới (đứng yên tại vị trí logic). */
+  private createMotion(e: CombatEntity): MotionState {
+    const at = worldToScreen(e);
+    const now = performance.now();
+    return {
+      init: true,
+      mapId: e.mapId,
+      tick: this.snapshot.tick,
+      tickAt: now,
+      prevX: at.x,
+      prevY: at.y,
+      nextX: at.x,
+      nextY: at.y,
+      x: at.x,
+      y: at.y,
+      distance: 0,
+      bob: 0,
+      direction: e.direction,
+      pendingDirection: e.direction,
+      pendingSince: now,
+      knockAt: 0,
+      knockX: 0,
+      knockY: 0,
+      knockMax: 0,
+      frozenUntil: 0,
+    };
+  }
+  /**
+   * Nội suy hiển thị giữa hai tick logic 20Hz (B1.2) + nhún thân (B2.2) + trượt
+   * lùi (B3.3) + dừng hình (B3.4). Chỉ trả toạ độ để VẼ; vị trí logic vẫn là
+   * nguồn sự thật cho va chạm/tầm đánh/lưu game.
+   */
+  private stepMotion(
+    e: CombatEntity,
+    v: EntityView,
+    delta: number,
+    now: number,
+  ) {
+    const m = v.motion;
+    const target = worldToScreen(e);
+    if (this.snapshot.tick !== m.tick) {
+      // Cắt nội suy khi dịch chuyển tức thời: đổi map, hồi sinh, hồi thành phù.
+      const jump = Math.hypot(target.x - m.nextX, target.y - m.nextY);
+      const teleport = e.mapId !== m.mapId || jump > 320;
+      m.prevX = teleport ? target.x : m.nextX;
+      m.prevY = teleport ? target.y : m.nextY;
+      m.nextX = target.x;
+      m.nextY = target.y;
+      m.tick = this.snapshot.tick;
+      m.tickAt = now;
+      m.mapId = e.mapId;
+      if (teleport) {
+        m.x = target.x;
+        m.y = target.y;
+        m.distance = 0;
+        m.bob = 0;
+        m.knockAt = 0;
+        m.frozenUntil = 0;
+      }
+    }
+    // Hướng hiển thị: giữ 100ms trước khi đổi; quay > 90° hoặc đang đánh thì đổi ngay.
+    if (e.direction !== m.pendingDirection) {
+      m.pendingDirection = e.direction;
+      m.pendingSince = now;
+    }
+    const forceDirection =
+      e.state === "attack" || e.state === "cast" || e.state === "dead";
+    if (
+      m.direction !== m.pendingDirection &&
+      (forceDirection ||
+        shouldAdoptDirection(
+          m.direction,
+          m.pendingDirection,
+          now - m.pendingSince,
+        ))
+    ) {
+      m.direction = m.pendingDirection;
+      m.pendingSince = now;
+    }
+    // Dừng hình: giữ nguyên hiển thị của đúng 2 thực thể trong 35ms.
+    if (m.frozenUntil > now) return { x: m.x, y: m.y, bob: m.bob };
+    const alpha = ENABLE_MOTION_SMOOTHING
+      ? Math.min(1, Math.max(0, (now - m.tickAt) / (1000 / TICK_RATE)))
+      : 1;
+    const px = lerp(m.prevX, m.nextX, alpha);
+    const py = lerp(m.prevY, m.nextY, alpha);
+    const moved = Math.hypot(px - m.x, py - m.y);
+    const walking = e.state === "walk" && moved > 0.01;
+    if (walking) m.distance += moved;
+    m.x = px;
+    m.y = py;
+    let knockX = 0,
+      knockY = 0;
+    if (m.knockAt) {
+      const offset = knockbackOffset(now - m.knockAt, m.knockMax);
+      if (!offset) m.knockAt = 0;
+      knockX = m.knockX * offset;
+      knockY = m.knockY * offset;
+    }
+    m.bob = walking ? bobOffset(m.distance) : settleBob(m.bob, delta);
+    return { x: px + knockX, y: py + knockY, bob: m.bob };
+  }
+  /** Bắt đầu cú trượt lùi hiển thị khi trúng đòn (B3.3). */
+  private startKnockback(victimId: string) {
+    const victim = this.snapshot.entities[victimId];
+    const m = victim ? this.views.get(victimId)?.motion : undefined;
+    if (!victim || !m) return;
+    const from = this.snapshot.entities[this.snapshot.playerId];
+    let dx = victim.x - from.x,
+      dy = victim.y - from.y;
+    const len = Math.hypot(dx, dy) || 1;
+    dx /= len;
+    dy /= len;
+    // Đổi sang hướng trên màn hình iso để cú đẩy lùi đúng cảm giác.
+    const sx = (dx - dy) * 48,
+      sy = (dx + dy) * 24;
+    const screenLength = Math.hypot(sx, sy) || 1;
+    m.knockAt = performance.now();
+    m.knockX = sx / screenLength;
+    m.knockY = sy / screenLength;
+    m.knockMax =
+      victim.elite || isBossMonster(victim.definitionId)
+        ? KNOCKBACK_ELITE_PX
+        : KNOCKBACK_PX;
+  }
+  /** Số thực thể đang giao chiến với người chơi (để bỏ dừng hình khi quá đông). */
+  private engagedFighters() {
+    const p = this.snapshot.entities[this.snapshot.playerId];
+    if (!p) return 0;
+    let count = 0;
+    for (const e of Object.values(this.snapshot.entities)) {
+      if (e.mapId !== p.mapId || e.kind !== "monster" || e.hp <= 0) continue;
+      if (
+        e.targetId === p.id ||
+        p.targetId === e.id ||
+        (e.threat[p.id] ?? 0) > 0
+      )
+        count += 1;
+    }
+    return count;
+  }
+  /** Dừng hình cực ngắn cho đúng 2 thực thể tại khoảnh khắc chạm đòn (B3.4). */
+  private startHitStop(attackerId: string, victimId: string) {
+    if (!getPreferences().hitStop) return;
+    if (this.engagedFighters() >= HITSTOP_MAX_FIGHTERS) return;
+    const until = performance.now() + HITSTOP_MS;
+    for (const id of [attackerId, victimId]) {
+      const m = this.views.get(id)?.motion;
+      if (m) m.frozenUntil = until;
+    }
+  }
   private effect(e: GameEvent) {
     this.vfx?.event(e, this.snapshot);
     if (e.type === "damage" && e.value) {
@@ -813,6 +1022,11 @@ export class WorldScene extends Phaser.Scene {
         this.time.delayedCall(90, () => {
           if (view.sprite.active) view.sprite.setTint(color);
         });
+      }
+      if (view && e.damageSource !== "dot") {
+        // Trượt lùi hiển thị + dừng hình cực ngắn tại khoảnh khắc chạm đòn.
+        this.startKnockback(e.entityId ?? "");
+        this.startHitStop(this.snapshot.playerId, e.entityId ?? "");
       }
       if (
         e.critical &&

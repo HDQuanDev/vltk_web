@@ -300,8 +300,10 @@ describe("Hành trang và economy", () => {
     expect(addItem(w.state, "sword")).toBe(false);
   });
   it("trang bị và tháo đổi chỉ số thực tế", () => {
-    const w = setup(),
-      robe = w.state.inventory.find((i) => i.definitionId === "robe")!,
+    const w = setup();
+    // Đạo Bào Thanh Vân không còn phát sẵn lúc tạo nhân vật (là thưởng NV01).
+    addItem(w.state, "robe");
+    const robe = w.state.inventory.find((i) => i.definitionId === "robe")!,
       defense = w.player.defense;
     command(w, { type: "equip", instanceId: robe.id });
     expect(w.player.defense).toBe(defense + 6);

@@ -49,6 +49,10 @@ async function importState(page: Page, s: GameSnapshot) {
   await expect(page.locator(".player-name strong")).toHaveText(s.name);
   await expect(page.locator(".world-viewport canvas")).toHaveCount(1);
   await expect(page.locator(".world-viewport canvas")).toBeVisible();
+  // Trả focus khỏi input file để phím tắt ("i") mở được hành trang.
+  await page.evaluate(() =>
+    (document.activeElement as HTMLElement | null)?.blur(),
+  );
 }
 for (const viewport of [
   { width: 1920, height: 1080 },
@@ -64,6 +68,17 @@ for (const viewport of [
     const errors: string[] = [];
     page.on("pageerror", (e) => errors.push(e.message));
     await start(page);
+    // Đạo Bào Thanh Vân là thưởng NV01 nên không còn trong túi lúc tạo nhân
+    // vật; cấp tường minh để kiểm tra chi tiết vật phẩm + trang bị.
+    const granted = await savedState(page);
+    granted.inventory.push({
+      id: "e2e-grant:robe",
+      definitionId: "robe",
+      quantity: 1,
+    });
+    await importState(page, granted);
+    // Chờ cảnh dựng lại xong sau khi nhập bản lưu, tránh tranh chấp với panel.
+    await expect(page.locator(".world-loading")).toHaveCount(0);
     await expect(page.locator(".player-hud")).toBeVisible();
     expect(
       await page.evaluate(
@@ -93,7 +108,11 @@ for (const viewport of [
         .locator(".mobile-menu")
         .getByRole("button", { name: "Hành trang", exact: true })
         .click();
-    } else await page.keyboard.press("i");
+    } else
+      await page
+        .getByRole("toolbar", { name: "Truy cập nhanh" })
+        .getByRole("button", { name: "Hành trang", exact: true })
+        .click();
     await expect(
       page.getByRole("dialog", { name: "Hành trang", exact: true }),
     ).toBeVisible();

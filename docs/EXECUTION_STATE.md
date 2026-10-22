@@ -1,3 +1,36 @@
+# Phiên QA 22/10: 3 lỗi tồn (A1/A2/A3) + cảm giác chuyển động (B1/B2/B3) — 22/10/2026 (mới nhất)
+
+Scope: `packages/game-core` (chỉ hành trang khởi đầu), `apps/web/src/game` (hiển thị + preferences), `apps/web/src/app` (phiên bản, xóa cache), `src/ui`. Không đổi cân bằng (sát thương/hồi chiêu/tốc độ/tầm/giá/phần thưởng), không thêm thư viện/hình ảnh.
+
+## Phần A
+
+- **A1**: `packages/game-core/src/engine/world.ts` `createWorld()` — gỡ `robe` (Đạo Bào Thanh Vân) khỏi hành trang khởi đầu vì đây là thưởng NV01 `bandits` (`rewardItem: "robe"`). Hành trang mới: `hp×8, mp×5` + 180 bạc; mặc sẵn chỉ có `sword`. Rà 28 nhiệm vụ: `hp` (5 nhiệm vụ), `mp` (3), `sword` (1) cũng trùng loại với khởi đầu nhưng **giữ nguyên** — hp/mp là đồ tiêu hao xếp chồng (thưởng cộng vào stack, không tạo ô trùng), `sword` là trang bị đang mặc. Không thu hồi đồ của nhân vật cũ. Test cũ dựa vào robe khởi đầu đã được cấp tường minh (`core.test.ts`, `v02-economy`, `v02-combat`, `full-offline`, `tests/e2e/game.spec.ts`).
+- **A2**: `apps/web/src/app/pwa-cache.ts` + `ui/CacheReset.tsx` — reload bằng `?_cb=<ms>` rồi gỡ tham số trong `main.tsx`; khóa nút + nhãn "Đang xóa bộ nhớ đệm…"; hủy SW và xóa Cache Storage mỗi bước try/catch riêng, log `[cache-reset]`, lỗi không chặn reload. Không đụng IndexedDB/localStorage.
+- **A3**: `apps/web/src/app/version.ts` là nguồn duy nhất (`__APP_VERSION__`/`__APP_BUILD_DATE__` do `vite.config.ts` chèn từ `package.json` + ngày build); lobby và panel Thiết lập cùng hiện `BẢN OFFLINE · v0.6.0 · dd/mm/yyyy`; 7 `package.json` lên 0.6.0.
+
+## Phần B (chỉ hiển thị)
+
+- Khảo sát **B1.1 = (a)**: logic 20Hz (`LocalGameSession` 50ms) + `WorldScene.update()` đuổi hàm mũ `1−exp(−delta/65)`; `world.ts:1899-1926` đã đi liền qua nút và chuẩn hóa vector chéo nên không phải (b).
+- `scene/WorldScene.ts`: `MotionState` theo từng view — nội suy `prev→next` theo `(now − tickAt)/50ms`, cắt ngay khi đổi map hoặc nhảy > 320px; nhún thân ±1.5px theo quãng đường; hướng giữ 100ms (đổi ngay khi > 90° hoặc đang đánh); trượt lùi hiển thị 10px (tinh anh/boss 4px) 60/40/140ms; dừng hình 35ms cho 2 thực thể, bỏ khi ≥ 5 thực thể giao chiến.
+- `renderers/motion.ts` (mới): hằng số + hàm thuần (`STEP_CYCLE_PX = 28`, `CAMERA_SMOOTHING = 8`, `BOB_AMPLITUDE_PX = 1.5`, `DIRECTION_HOLD_MS = 100`, `HITSTOP_MS = 35`, `KNOCKBACK_PX = 10`) và công tắc `ENABLE_MOTION_SMOOTHING`.
+- `animations/sprite-frames.ts` + `actor-sprites.ts` + `monster-sprites.ts`: chọn khung walk/run theo `distancePx` (28px/chu kỳ), giữ nguyên cách chọn theo thời gian khi không truyền.
+- `camera/CameraController.ts`: giảm chấn `1 − e^(−8·dt)`, bám thẳng khi nhảy > 400px.
+- `preferences.ts` + `ui/ClientSettings.tsx`: công tắc `hitStop` (mặc định bật).
+
+## Kiểm chứng đã chạy
+
+- `tsc --noEmit` PASS; `eslint .` PASS; `vitest run` **383/383** (thêm `tests/integration/motion.test.ts` 8 case); `pnpm build` PASS (precache 71 entry).
+- A2: `playwright test tests/e2e/cache-reset.spec.ts` PASS (cache đánh dấu biến mất, SW đăng ký lại, save IndexedDB còn nguyên).
+- A3: probe trình duyệt trên preview — lobby và Thiết lập cùng chuỗi `BẢN OFFLINE · v0.6.0 · 22/10/2026`.
+- A1: script core — hành trang `hp×8, mp×5`, 180 bạc, thưởng NV01 cộng đúng 1 `robe`.
+
+## Chưa làm / giới hạn
+
+- **B3.1/B3.2** chưa dời sát thương về mốc 35% chu kỳ và chưa bật lunge (`lungeOffset()` có sẵn nhưng chưa nối) — thay đổi nằm trong `CombatRuntime.basic` và ảnh hưởng nhiều test combat.
+- **B1.3** làm mượt chuỗi điểm và **B1.5** lệch pha AI theo id: chưa làm (B1.3 không cần theo kết luận (a)).
+- **B2.1** trễ walk→stand 120ms: chưa làm.
+- Cảm giác mượt B1/B2/B3 **chưa kiểm chứng trực quan**; cần người chơi xác nhận trên máy thật.
+
 # Phiên gói 10 tính năng trải nghiệm (A1–C3) — mới nhất
 
 Scope: `packages/game-core` (tự chiến trong core, tinh anh theo giờ, thành tựu, dịch chuyển nhanh, Hồi Thành Phù), `packages/game-protocol` (field/lệnh mới), `packages/game-storage` (schema mới + bản lưu dự phòng xoay vòng), `packages/game-content` (item `town-scroll`, `elites`, `achievements`), `apps/web` (panel Tự chiến/Thành tựu, HUD, renderer), `apps/web/src/styles/*` (glow bậc cường hóa, `.fps-counter`, `.travel-row`).

@@ -58,13 +58,28 @@ export function spriteFacing(direction: Direction8): {
   return { facing: "up", flipX: false };
 }
 /**
+ * Quãng đường (px màn hình) cho đúng 1 chu kỳ 2 khung đi bộ. Nhịp chân theo
+ * quãng đường nên chân không trượt ở bất kỳ tốc độ nào (walk hay run).
+ */
+export const STEP_CYCLE_PX = 28;
+/**
  * Ánh xạ trạng thái simulation sang tên file sprite. Trạng thái một khung
  * (cast/attack/hit/hurt/die/use) giữ nguyên ảnh nên `die` tự dừng ở khung cuối.
+ *
+ * `options.distancePx` (nếu có) chọn khung walk/run theo QUÃNG ĐƯỜNG đã đi:
+ * mỗi STEP_CYCLE_PX px là một chu kỳ, nửa chu kỳ đổi khung. Không truyền thì
+ * giữ cách chọn theo thời gian như cũ.
  */
 export function spriteStateName(
   state: AnimationState,
   elapsedTicks: number,
-  options: { lowHp?: boolean; fast?: boolean; walkFps: number; runFps: number },
+  options: {
+    lowHp?: boolean;
+    fast?: boolean;
+    walkFps: number;
+    runFps: number;
+    distancePx?: number;
+  },
 ): SpriteStateName {
   switch (state) {
     case "idle":
@@ -75,7 +90,10 @@ export function spriteStateName(
         : (["walk-1", "walk-2"] as const);
       const fps = options.fast ? options.runFps : options.walkFps;
       const frame =
-        Math.floor((Math.max(0, elapsedTicks) * fps) / TICK_RATE) % 2;
+        options.distancePx !== undefined
+          ? Math.floor(Math.max(0, options.distancePx) / (STEP_CYCLE_PX / 2)) %
+            2
+          : Math.floor((Math.max(0, elapsedTicks) * fps) / TICK_RATE) % 2;
       return frames[frame];
     }
     case "attack":

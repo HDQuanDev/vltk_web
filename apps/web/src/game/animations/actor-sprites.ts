@@ -63,7 +63,7 @@ export function actorSpriteFrame(
   state: AnimationState,
   direction: Direction8,
   elapsedTicks: number,
-  options: { lowHp?: boolean } = {},
+  options: { lowHp?: boolean; distancePx?: number } = {},
 ): ActorSpriteFrame | null {
   const set = actorSpriteOwner(sectId, appearance);
   if (!set) return null;
@@ -74,6 +74,7 @@ export function actorSpriteFrame(
     fast: false,
     walkFps: actorSpriteManifest.walkFps,
     runFps: actorSpriteManifest.runFps,
+    distancePx: options.distancePx,
   });
   return {
     url: actorSpriteUrl(set.owner, facing, spriteState),

@@ -49,6 +49,16 @@ export function ClientSettings() {
         </label>
       </div>
       <div className="setting-row">
+        <label>
+          <input
+            type="checkbox"
+            checked={p.hitStop}
+            onChange={(e) => update({ hitStop: e.target.checked })}
+          />{" "}
+          Dừng hình khi trúng đòn
+        </label>
+      </div>
+      <div className="setting-row">
         <span>Cần di chuyển</span>
         <select
           aria-label="Chế độ joystick"

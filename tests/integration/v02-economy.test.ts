@@ -142,8 +142,10 @@ describe("Kinh tế / chế tạo / cường hóa / kho", () => {
     expect(itemBonuses(w.state.equipment.weapon).attack).toBeGreaterThan(16);
   });
   it("gửi/rút kho giữ metadata, yêu cầu gần NPC và không nhân đôi vật phẩm", () => {
-    const w = setup(),
-      robe = w.state.inventory.find((i) => i.definitionId === "robe")!;
+    const w = setup();
+    // Đạo Bào Thanh Vân là thưởng NV01 nên phải tạo tường minh trong test.
+    addItem(w.state, "robe");
+    const robe = w.state.inventory.find((i) => i.definitionId === "robe")!;
     robe.enhancement = 3;
     robe.gems = ["jade-gem"];
     send(w, { type: "deposit", instanceId: robe.id });

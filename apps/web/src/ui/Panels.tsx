@@ -523,9 +523,7 @@ export function Panels(p: Props) {
                     data-quest-id={q.id}
                     data-quest-order={d.order}
                     data-quest-status={state?.status ?? "none"}
-                    data-quest-progress={
-                      state ? `${d.current}/${d.count}` : ""
-                    }
+                    data-quest-progress={state ? `${d.current}/${d.count}` : ""}
                   >
                     <small>{q.chapter}</small>
                     <h3>
@@ -536,9 +534,7 @@ export function Panels(p: Props) {
                     <p>{q.description}</p>
                     <div className="objective">
                       <span>{questStepLabel(d)}</span>
-                      <b>
-                        {state ? `${d.current} / ${d.count}` : "Chưa nhận"}
-                      </b>
+                      <b>{state ? `${d.current} / ${d.count}` : "Chưa nhận"}</b>
                     </div>
                     <div className="quest-rewards">
                       +{q.exp} kinh nghiệm <span>·</span> +{q.gold} bạc{" "}
@@ -695,7 +691,10 @@ export function Panels(p: Props) {
                 .map((m) => {
                   const visited = s.visitedMaps.includes(m.id),
                     readyAt = s.travelReadyAt ?? 0,
-                    cooldown = Math.max(0, Math.ceil((readyAt - Date.now()) / 1000)),
+                    cooldown = Math.max(
+                      0,
+                      Math.ceil((readyAt - Date.now()) / 1000),
+                    ),
                     shortGold = s.gold < TRAVEL_GOLD,
                     blocked = cooldown > 0 || shortGold;
                   return (
@@ -717,9 +716,7 @@ export function Panels(p: Props) {
                         <button
                           className="outline-button"
                           disabled={blocked}
-                          onClick={() =>
-                            send({ type: "travel", mapId: m.id })
-                          }
+                          onClick={() => send({ type: "travel", mapId: m.id })}
                         >
                           {cooldown > 0 ? `${cooldown}s` : "Dịch chuyển"}
                         </button>

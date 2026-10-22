@@ -28,6 +28,8 @@ export interface ClientPreferences {
   shadows3d: boolean;
   /** Hiện số sát thương bay lên (A3). Tắt vẫn giữ nhấp nháy đỏ khi trúng đòn. */
   damageNumbers: boolean;
+  /** Dừng hình cực ngắn khi trúng đòn (B3.4). Mặc định bật. */
+  hitStop: boolean;
   /** Vòng sáng ấm quanh nhân vật vào ban đêm (C2). */
   playerNightLight: boolean;
   /** Hiện số FPS ở góc màn hình game (C3). */
@@ -61,6 +63,7 @@ export const defaultPreferences: ClientPreferences = {
   renderMode: "2d",
   shadows3d: false,
   damageNumbers: true,
+  hitStop: true,
   playerNightLight: true,
   showFps: false,
   autoCombat: {
@@ -95,6 +98,7 @@ try {
     "parallaxForeground",
     "cameraLookahead",
     "damageNumbers",
+    "hitStop",
     "playerNightLight",
     "showFps",
   ] as const)

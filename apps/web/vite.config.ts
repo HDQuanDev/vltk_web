@@ -4,6 +4,22 @@ import tailwind from "@tailwindcss/vite";
 import { healthz } from "./healthz-plugin";
 import { VitePWA } from "vite-plugin-pwa";
 import { fileURLToPath, URL } from "node:url";
+import { readFileSync } from "node:fs";
+
+/**
+ * Phiên bản + ngày build được chèn vào bundle tại thời điểm build.
+ * Nguồn duy nhất cho số phiên bản là `version` trong package.json gốc; mọi chỗ
+ * hiển thị đọc qua `apps/web/src/app/version.ts`.
+ */
+const appVersion = (
+  JSON.parse(
+    readFileSync(new URL("../../package.json", import.meta.url), "utf8"),
+  ) as { version?: string }
+).version;
+const buildNow = new Date();
+const appBuildDate = `${String(buildNow.getDate()).padStart(2, "0")}/${String(
+  buildNow.getMonth() + 1,
+).padStart(2, "0")}/${buildNow.getFullYear()}`;
 /**
  * Host được phép truy cập dev/preview server khi mở từ LAN hoặc domain ngoài.
  * Vite mặc định chặn Host lạ (chống DNS rebinding), nên phải khai báo tường minh.
@@ -17,6 +33,11 @@ const allowedHosts = [
 ];
 export default defineConfig({
   root: fileURLToPath(new URL(".", import.meta.url)),
+  // Phiên bản/ngày build: nguồn duy nhất là package.json gốc (xem version.ts).
+  define: {
+    __APP_VERSION__: JSON.stringify(appVersion ?? "0.0.0"),
+    __APP_BUILD_DATE__: JSON.stringify(appBuildDate),
+  },
   plugins: [
     react(),
     healthz(),

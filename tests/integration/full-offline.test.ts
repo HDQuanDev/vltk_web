@@ -149,7 +149,8 @@ describe("Ground loot authoritative", () => {
     expect(w.state.inventory.find((i) => i.id === loot.item!.id)).toEqual(
       loot.item,
     );
-    expect(w.state.actors[other].inventory).toHaveLength(3);
+    // Nhân vật mới chỉ còn 2 món tiêu hao (Đạo Bào giờ là thưởng NV01).
+    expect(w.state.actors[other].inventory).toHaveLength(2);
   });
   it("túi đầy không xóa đồ; stack còn chỗ vẫn nhặt được", () => {
     const { w, send } = setup();

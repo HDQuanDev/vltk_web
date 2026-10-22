@@ -163,10 +163,13 @@ export function createGame(
     attributePoints: 0,
     skillPoints: 0,
     skillLevels,
+    // Hành trang khởi đầu: chỉ đồ tiêu hao + 180 bạc. Đạo Bào Thanh Vân
+    // ("robe") là phần thưởng của nhiệm vụ NV01 "Bình yên thôn nhỏ", KHÔNG
+    // phát sẵn trong túi (trước đây phát sẵn nên nhận thưởng xong bị trùng 2
+    // chiếc). Trang bị mặc sẵn lúc tạo nhân vật chỉ có kiếm ("sword").
     inventory: [
       { id: characterId + ":hp", definitionId: "hp", quantity: 8 },
       { id: characterId + ":mp", definitionId: "mp", quantity: 5 },
-      { id: characterId + ":robe", definitionId: "robe", quantity: 1 },
     ],
     equipment: {
       weapon: {
