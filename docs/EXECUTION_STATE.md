@@ -1,3 +1,19 @@
+# Phiên sửa 3 lỗi tự nhặt đồ / nhật ký của tự chiến — 22/10/2026 (mới nhất)
+
+Scope: `packages/game-core/src/engine/world.ts` (nhặt đồ, tự chiến, step), `apps/web/src/app/App.tsx` (nhật ký UI). Không đổi cân bằng rơi đồ/kinh tế, không đổi AI chọn mục tiêu, không đổi panel cấu hình tự chiến.
+
+## Đã sửa
+
+- **Lỗi 1 (thiếu dòng nhật ký)**: core đã đi **một đường duy nhất** — `die()` phát `death`, rơi đồ + `pickup()` phát `loot` cho cả đánh tay, kỹ năng và tự chiến (kiểm chứng bằng test: tự chiến giết quái có đủ dòng "Đánh bại …" và "Nhặt được …"). Lỗi mất dòng nằm ở UI: `App.tsx` dùng `id: Date.now() + e.id` (trùng khoá React khi nhiều sự kiện cùng mili giây) và bộ đệm chỉ 80 dòng. Đổi sang bộ đếm `++logSeq.current` và đệm 300 dòng; nội dung/định dạng dòng giữ nguyên.
+- **Lỗi 2 (không chủ động đi nhặt)**: thêm `autoPickupStep()` trong `world.ts`, gọi ở nhánh `autoCombatTick()` khi **không còn mục tiêu** — đi tới món đồ gần nhất của mình trong bán kính quét 12 ô (đúng bộ lọc phẩm chất), rồi quay lại quét quái. Túi đầy: không đi, báo "Hành trang đầy…" 1 lần/phiên (`autoPickupFullNotified`, reset khi bật lại tự chiến) và giữ hành vi `stopWhenFull`. Tắt "Tự nhặt đồ" → không đi nhặt.
+- **Lỗi 3 (đi ngang qua không nhặt)**: trong `step()`, người chơi còn sống, **không bật tự chiến**, không `autoCombatPaused` (hội thoại/shop), không `pendingInteraction` → tự nhặt đồ của mình trong đúng bán kính 1.8 ô của đường bấm-nhặt (áp cho bấm chuột, phím, tự tìm đường). Bấm nhặt từ xa vẫn như cũ.
+
+## Kiểm chứng
+
+- `tsc --noEmit` PASS, `eslint .` PASS, `pnpm build` PASS, `vitest run` **389/389** (thêm `tests/integration/auto-pickup.test.ts` 6 case: tự chiến có đủ dòng giết/nhặt, chủ động đi nhặt trong 12 ô, tắt công tắc thì không nhặt, đi bộ qua thì nhặt, tạm dừng thì không, bấm từ xa vẫn đi nhặt).
+- Hiển thị nhật ký trên UI và cảm nhận trên máy thật: **chưa kiểm chứng trực quan** — cần người chơi xác nhận.
+
+
 # Phiên QA 22/10: 3 lỗi tồn (A1/A2/A3) + cảm giác chuyển động (B1/B2/B3) — 22/10/2026 (mới nhất)
 
 Scope: `packages/game-core` (chỉ hành trang khởi đầu), `apps/web/src/game` (hiển thị + preferences), `apps/web/src/app` (phiên bản, xóa cache), `src/ui`. Không đổi cân bằng (sát thương/hồi chiêu/tốc độ/tầm/giá/phần thưởng), không thêm thư viện/hình ảnh.

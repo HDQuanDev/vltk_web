@@ -161,6 +161,8 @@ export default function App() {
     sessionRef = useRef<GameSession | null>(null),
     saveLocked = useRef(false),
     lastMap = useRef(""),
+    /** Bộ đếm id nhật ký: tránh trùng khoá React khi nhiều sự kiện cùng lúc. */
+    logSeq = useRef(0),
     importInput = useRef<HTMLInputElement>(null),
     logList = useRef<HTMLDivElement>(null);
   /** Bộ hiển thị đang chạy, để áp giới hạn khung hình ngay khi đổi (C3). */
@@ -223,7 +225,11 @@ export default function App() {
         }
         if (cancelled) return;
         setRecords(list);
-        setSlotIssues(slots.issues.filter((i) => !list.some((r) => r.characterId === i.characterId)));
+        setSlotIssues(
+          slots.issues.filter(
+            (i) => !list.some((r) => r.characterId === i.characterId),
+          ),
+        );
         if (list[0]) setRecoveryId(list[0].characterId);
         setEntryReady(true);
         setSaveStatus("Chọn nhân vật để bắt đầu");
@@ -322,11 +328,15 @@ export default function App() {
           [
             ...previous,
             ...meaningful.map((e: GameEvent) => ({
-              id: Date.now() + e.id,
+              // Lỗi 1: id tăng dần duy nhất — trước đây `Date.now()+e.id` có thể
+              // trùng khoá React khi nhiều sự kiện rơi vào cùng một mili giây.
+              id: ++logSeq.current,
               type: e.type,
               text: e.text,
             })),
-          ].slice(-80),
+            // Giữ đủ lâu để dòng giết quái/nhặt đồ của tự chiến không bị đẩy ra
+            // khỏi nhật ký giữa trận.
+          ].slice(-300),
         );
       for (const e of update.events) {
         playEvent(e, update.snapshot.settings);
@@ -910,9 +920,7 @@ export default function App() {
             }
             aria-pressed={compactHud}
             onClick={() => setCompactHud(!compactHud)}
-            title={
-              compactHud ? "Hiện đầy đủ giao diện" : "Thu gọn giao diện"
-            }
+            title={compactHud ? "Hiện đầy đủ giao diện" : "Thu gọn giao diện"}
           >
             {compactHud ? <Eye size={18} /> : <EyeOff size={18} />}
           </button>
@@ -1089,12 +1097,13 @@ export default function App() {
               <div className="quest-chapter">
                 <span>CHÍNH TUYẾN</span>
                 <span>
-                  {allQuestsDone ? "HOÀN TẤT" : `NHIỆM VỤ ${tracked?.order ?? "--"}`}
+                  {allQuestsDone
+                    ? "HOÀN TẤT"
+                    : `NHIỆM VỤ ${tracked?.order ?? "--"}`}
                 </span>
               </div>
               <h3>
-                <i />{" "}
-                {allQuestsDone ? "Giang hồ thái bình" : quest.name}
+                <i /> {allQuestsDone ? "Giang hồ thái bình" : quest.name}
               </h3>
               <p>
                 {allQuestsDone
@@ -1178,7 +1187,9 @@ export default function App() {
             aria-pressed={player.autoAttack}
             title={`Tự chiến: ${player.autoAttack ? "Bật" : "Tắt"} · Phím F · Giữ chuột phải để mở cấu hình`}
             data-auto-combat={player.autoAttack ? "on" : "off"}
-            onClick={() => send({ type: "autoAttack", enabled: !player.autoAttack })}
+            onClick={() =>
+              send({ type: "autoAttack", enabled: !player.autoAttack })
+            }
             onContextMenu={(e) => {
               e.preventDefault();
               togglePanel("autoCombat");
@@ -1262,7 +1273,7 @@ export default function App() {
               setLogs((l) => [
                 ...l,
                 {
-                  id: Date.now(),
+                  id: ++logSeq.current,
                   type: "guide",
                   text: `Ghi chú: ${note.trim()}`,
                 },
@@ -1532,31 +1543,19 @@ export default function App() {
           >
             <div className="menu-group-title">Nhân vật &amp; Vật phẩm</div>
             <div className="menu-group-grid grid-4">
-              <button
-                type="button"
-                onClick={() => togglePanel("character")}
-              >
+              <button type="button" onClick={() => togglePanel("character")}>
                 <UserRound size={20} />
                 <span>Nhân vật</span>
               </button>
-              <button
-                type="button"
-                onClick={() => togglePanel("inventory")}
-              >
+              <button type="button" onClick={() => togglePanel("inventory")}>
                 <Backpack size={20} />
                 <span>Hành trang</span>
               </button>
-              <button
-                type="button"
-                onClick={() => togglePanel("warehouse")}
-              >
+              <button type="button" onClick={() => togglePanel("warehouse")}>
                 <Archive size={20} />
                 <span>Kho đồ</span>
               </button>
-              <button
-                type="button"
-                onClick={() => togglePanel("characters")}
-              >
+              <button type="button" onClick={() => togglePanel("characters")}>
                 <UserRound size={20} />
                 <span>Nhân vật khác</span>
               </button>
@@ -1570,31 +1569,19 @@ export default function App() {
           >
             <div className="menu-group-title">Chiến đấu &amp; Phát triển</div>
             <div className="menu-group-grid grid-4">
-              <button
-                type="button"
-                onClick={() => togglePanel("skills")}
-              >
+              <button type="button" onClick={() => togglePanel("skills")}>
                 <Swords size={20} />
                 <span>Võ học</span>
               </button>
-              <button
-                type="button"
-                onClick={() => togglePanel("activities")}
-              >
+              <button type="button" onClick={() => togglePanel("activities")}>
                 <Leaf size={20} />
                 <span>Nghề nghiệp</span>
               </button>
-              <button
-                type="button"
-                onClick={() => togglePanel("workshop")}
-              >
+              <button type="button" onClick={() => togglePanel("workshop")}>
                 <Swords size={20} />
                 <span>Công xưởng</span>
               </button>
-              <button
-                type="button"
-                onClick={() => togglePanel("achievements")}
-              >
+              <button type="button" onClick={() => togglePanel("achievements")}>
                 <Trophy size={20} />
                 <span>Thành tựu</span>
               </button>
@@ -1608,35 +1595,22 @@ export default function App() {
           >
             <div className="menu-group-title">Khám phá &amp; Thông tin</div>
             <div className="menu-group-grid grid-3">
-              <button
-                type="button"
-                onClick={() => togglePanel("quests")}
-              >
+              <button type="button" onClick={() => togglePanel("quests")}>
                 <ScrollText size={20} />
                 <span>Nhiệm vụ</span>
               </button>
-              <button
-                type="button"
-                onClick={() => togglePanel("map")}
-              >
+              <button type="button" onClick={() => togglePanel("map")}>
                 <Map size={20} />
                 <span>Bản đồ</span>
               </button>
-              <button
-                type="button"
-                onClick={() => togglePanel("guide")}
-              >
+              <button type="button" onClick={() => togglePanel("guide")}>
                 <BookOpen size={20} />
                 <span>Cẩm nang</span>
               </button>
             </div>
           </div>
 
-          <div
-            className="menu-group"
-            role="group"
-            aria-label="Hệ thống"
-          >
+          <div className="menu-group" role="group" aria-label="Hệ thống">
             <div className="menu-group-title">Hệ thống</div>
             <div className="menu-group-grid grid-2">
               <button
@@ -1657,10 +1631,7 @@ export default function App() {
                   {s.settings.sound ? "Tắt âm thanh" : "Bật âm thanh"}
                 </span>
               </button>
-              <button
-                type="button"
-                onClick={() => togglePanel("settings")}
-              >
+              <button type="button" onClick={() => togglePanel("settings")}>
                 <Settings size={20} />
                 <span>Thiết lập</span>
               </button>
@@ -1684,7 +1655,9 @@ export default function App() {
           onExport={exportSave}
           onImport={() => importInput.current?.click()}
           onSave={() => void save()}
-          lastSavedAt={records.find((r) => r.characterId === s.characterId)?.savedAt}
+          lastSavedAt={
+            records.find((r) => r.characterId === s.characterId)?.savedAt
+          }
           lastExportAt={lastExportAt}
           onCreate={(n, c, a) => void createCharacter(n, c, a)}
           onSelect={(id) => void selectCharacter(id)}

@@ -62,7 +62,10 @@ export const TICK_RATE = 20;
 /** Nhịp ra quyết định của tự chiến (ms), không phụ thuộc frame render. */
 export const AUTO_COMBAT_TICK_MS = 250;
 /** Số tick mô phỏng tương ứng một nhịp quyết định tự chiến. */
-const AUTO_COMBAT_TICKS = Math.max(1, Math.round((AUTO_COMBAT_TICK_MS / 1000) * TICK_RATE));
+const AUTO_COMBAT_TICKS = Math.max(
+  1,
+  Math.round((AUTO_COMBAT_TICK_MS / 1000) * TICK_RATE),
+);
 /** Bán kính quét mục tiêu của tự chiến (ô). */
 export const AUTO_COMBAT_RANGE = 12;
 /** Bán kính nhặt đồ của tự chiến (ô). */
@@ -79,8 +82,7 @@ const RESPAWN_POINT = { x: 14, y: 14 };
  */
 function hashEntityId(id: string) {
   let hash = 0;
-  for (let i = 0; i < id.length; i++)
-    hash = (hash * 31 + id.charCodeAt(i)) | 0;
+  for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) | 0;
   // `cooldowns` lưu số không âm trong schema bản lưu; `| 0` có thể ra số âm.
   return Math.abs(hash) || 1;
 }
@@ -328,6 +330,8 @@ export class GameWorld {
   public state: GameSnapshot;
   private random: SeededRandom;
   private events: GameEvent[] = [];
+  /** Nhân vật đã báo "túi đầy" trong phiên tự chiến hiện tại (Lỗi 2). */
+  private autoPickupFullNotified = new Set<string>();
   private lastSequence = new Map<string, number>();
   private eventId = 0;
   private allowPause: boolean;
@@ -400,9 +404,7 @@ export class GameWorld {
    *   lưu, đúng yêu cầu "chờ 30 phút vẫn trôi khi thoát game".
    * - `autoCombat.skills/autoPickup`: bản lưu cũ thiếu thì mặc định bật.
    */
-  private applyProgressDefaults(
-    p: CharacterProgress,
-  ) {
+  private applyProgressDefaults(p: CharacterProgress) {
     p.achievements ??= {
       counters: { kills: 0, wolfKills: 0, peakGold: 0, enhancementSuccess: 0 },
       claimed: [],
@@ -450,7 +452,8 @@ export class GameWorld {
   private achievementsReached(p: CharacterProgress) {
     const claimed = new Set(p.achievements?.claimed ?? []);
     return achievements.filter(
-      (a) => !claimed.has(a.id) && this.achievementValue(p, a.source) >= a.threshold,
+      (a) =>
+        !claimed.has(a.id) && this.achievementValue(p, a.source) >= a.threshold,
     );
   }
   /** Tập id thành tựu đã đạt tại thời điểm gọi (dùng để phát hiện "vừa đạt"). */
@@ -588,7 +591,12 @@ export class GameWorld {
       const def = achievements.find((a) => a.id === c.achievementId);
       if (!def) return;
       s.achievements ??= {
-        counters: { kills: 0, wolfKills: 0, peakGold: 0, enhancementSuccess: 0 },
+        counters: {
+          kills: 0,
+          wolfKills: 0,
+          peakGold: 0,
+          enhancementSuccess: 0,
+        },
         claimed: [],
       };
       // Chỉ nhận 1 lần; đã nhận hoặc chưa đạt ngưỡng thì bỏ qua.
@@ -597,11 +605,9 @@ export class GameWorld {
       s.achievements.claimed.push(def.id);
       s.gold += def.reward;
       this.trackPeakGold(p);
-      this.emit(
-        "loot",
-        `Thành tựu ${def.name}: +${def.reward} bạc.`,
-        { entityId: p.id },
-      );
+      this.emit("loot", `Thành tựu ${def.name}: +${def.reward} bạc.`, {
+        entityId: p.id,
+      });
       return;
     }
     if (c.type === "travel") {
@@ -773,14 +779,12 @@ export class GameWorld {
       p.farmAnchor = c.enabled ? { x: p.x, y: p.y } : null;
       // Bật lại thì xóa danh sách bỏ qua của chính nhân vật này.
       if (c.enabled) s.autoCombatSkip = {};
+      if (c.enabled) this.autoPickupFullNotified.delete(p.id);
       if (!c.enabled) {
         p.targetId = null;
         p.path = [];
       }
-      this.emit(
-        "message",
-        c.enabled ? "Tự chiến: Bật." : "Tự chiến: Tắt.",
-      );
+      this.emit("message", c.enabled ? "Tự chiến: Bật." : "Tự chiến: Tắt.");
       return;
     }
     if (c.type === "skill") {
@@ -1144,11 +1148,10 @@ export class GameWorld {
       q.progress = Math.min(d.count, q.progress + amount);
       if (q.progress === before) continue;
       // Thông báo tiến độ dạng "Sơn tặc 2/5" dùng tên mục tiêu tiếng Việt.
-      this.emit(
-        "quest",
-        `${questTargetLabel(d)} ${q.progress}/${d.count}`,
-        { entityId: actor.id, value: q.progress },
-      );
+      this.emit("quest", `${questTargetLabel(d)} ${q.progress}/${d.count}`, {
+        entityId: actor.id,
+        value: q.progress,
+      });
       if (q.progress >= d.count) {
         q.status = "ready";
         this.emit(
@@ -1227,6 +1230,48 @@ export class GameWorld {
    * phụ thuộc frame render. Thứ tự: uống thuốc → buff → chọn/đánh mục tiêu →
    * nhặt đồ. Trả `true` khi lượt cập nhật của actor nên dừng (chết, tạm dừng).
    */
+  /**
+   * Bước nhặt chủ động của tự chiến (Lỗi 2): khi không còn mục tiêu sống, đi
+   * tới món đồ gần nhất CỦA MÌNH trong bán kính quét 12 ô rồi nhặt, sau đó
+   * quay lại vòng quét quái. Túi đầy thì không đi và chỉ báo một lần.
+   */
+  private autoPickupStep(e: CombatEntity, p: CharacterProgress) {
+    const s = this.state,
+      config = p.autoCombat;
+    if (config.autoPickup === false || config.pickup === false) return false;
+    const floor =
+      config.lootRarity === "all" ? 1 : rarityPriority[config.lootRarity];
+    const loot = Object.values(s.groundLoot)
+      .filter(
+        (l) =>
+          l.ownerId === e.id &&
+          l.mapId === e.mapId &&
+          l.expiresAt > s.tick &&
+          distance(e, l) <= AUTO_COMBAT_RANGE &&
+          (!l.item ||
+            rarityPriority[getItem(l.item.definitionId).rarity] >= floor),
+      )
+      .sort((a, b) => distance(e, a) - distance(e, b))[0];
+    if (!loot) return false;
+    if (
+      loot.item &&
+      !canAddItem(p, loot.item.definitionId, loot.item.quantity)
+    ) {
+      if (!this.autoPickupFullNotified.has(e.id)) {
+        this.autoPickupFullNotified.add(e.id);
+        this.error("Hành trang đầy. Vật phẩm vẫn ở trên đất.");
+      }
+      // Giữ nguyên hành vi cũ: túi đầy + bật "dừng khi túi đầy" thì tắt tự chiến.
+      if (p.autoCombat.stopWhenFull) {
+        e.autoAttack = false;
+        e.path = [];
+        p.pendingInteraction = null;
+      }
+      return false;
+    }
+    this.pickup(e, loot.id, true);
+    return true;
+  }
   private autoCombatTick(e: CombatEntity, p: CharacterProgress) {
     const s = this.state,
       config = p.autoCombat;
@@ -1246,7 +1291,9 @@ export class GameWorld {
         const potion = p.inventory
           .filter((i) => {
             const d = getItem(i.definitionId);
-            return d.restore === wanted && p.level >= (d.requiredLevel ?? d.level);
+            return (
+              d.restore === wanted && p.level >= (d.requiredLevel ?? d.level)
+            );
           })
           // Yếu nhất (giá thấp nhất) trước: đủ dùng thì không phí đan quý.
           .sort((a, b) => {
@@ -1255,8 +1302,7 @@ export class GameWorld {
             return da.price - db.price || da.level - db.level;
           })[0];
         // Không có thuốc phù hợp thì bỏ qua, không báo lỗi.
-        if (potion)
-          this.command(e, { type: "useItem", instanceId: potion.id });
+        if (potion) this.command(e, { type: "useItem", instanceId: potion.id });
       }
     }
 
@@ -1304,7 +1350,8 @@ export class GameWorld {
       candidates.sort((a, b) => distance(e, a) - distance(e, b))[0];
     if (!target) {
       e.targetId = null;
-      e.path = [];
+      // Lỗi 2: hết mục tiêu → chủ động đi nhặt đồ rơi trong bán kính quét.
+      if (!this.autoPickupStep(e, p)) e.path = [];
       return false;
     }
     e.targetId = target.id;
@@ -1410,9 +1457,13 @@ export class GameWorld {
       entity.attack = Math.round(base.attack * elite.multipliers.attack);
       // Giữ `definitionId` = quái gốc để nhiệm vụ "Lang vương" vẫn tính.
       if (player.mapId === elite.mapId)
-        this.emit("message", `${elite.name} đã xuất hiện tại ${getMap(elite.mapId).name}!`, {
-          entityId: entity.id,
-        });
+        this.emit(
+          "message",
+          `${elite.name} đã xuất hiện tại ${getMap(elite.mapId).name}!`,
+          {
+            entityId: entity.id,
+          },
+        );
     }
   }
   /** Thưởng khi hạ tinh anh: 150–300 bạc, chắc chắn 1 Huyền Thiết, 30% trang bị. */
@@ -1431,7 +1482,9 @@ export class GameWorld {
     const base = monsters.find((m) => m.id === elite.monsterId);
     const drops: { itemId: string; chance: number }[] = [
       { itemId: "ore", chance: 1 },
-      ...(base?.loot ?? []).filter((l) => getItem(l.itemId).kind !== "material"),
+      ...(base?.loot ?? []).filter(
+        (l) => getItem(l.itemId).kind !== "material",
+      ),
     ];
     const loot = rollLoot(drops, () => this.random.next());
     const items = new Set(loot.map((l) => l.itemId));
@@ -1640,6 +1693,7 @@ export class GameWorld {
     delete this.state.groundLoot[loot.id];
     actor.path = [];
     progress.pendingInteraction = null;
+    this.autoPickupFullNotified.delete(actor.id);
     this.trackPeakGold(actor);
     this.emit(
       "loot",
@@ -1943,6 +1997,25 @@ export class GameWorld {
               : { type: "interact", targetId: id },
           );
         }
+      }
+      // Lỗi 3: đi ngang qua đồ rơi của mình thì tự nhặt — dùng đúng bán kính
+      // 1.8 ô mà đường bấm-vào-icon đang dùng, không thêm bán kính mới.
+      if (
+        progress &&
+        e.hp > 0 &&
+        !e.autoAttack &&
+        !e.autoCombatPaused &&
+        !progress.pendingInteraction &&
+        s.tick % 2 === 0
+      ) {
+        const near = Object.values(s.groundLoot).find(
+          (l) =>
+            l.ownerId === e.id &&
+            l.mapId === e.mapId &&
+            l.expiresAt > s.tick &&
+            distance(e, l) <= 1.8,
+        );
+        if (near) this.pickup(e, near.id, true);
       }
       if (progress && s.tick % 20 === 0) {
         e.mp = Math.min(e.maxMp, e.mp + 3);
