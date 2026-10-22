@@ -11,7 +11,7 @@ declare const __APP_VERSION__: string | undefined;
 declare const __APP_BUILD_DATE__: string | undefined;
 
 export const APP_VERSION: string =
-  typeof __APP_VERSION__ === "string" ? __APP_VERSION__ : "0.6.0";
+  typeof __APP_VERSION__ === "string" ? __APP_VERSION__ : "0.6.1";
 
 /** Ngày build dạng dd/mm/yyyy. */
 export const APP_BUILD_DATE: string =

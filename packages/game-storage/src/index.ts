@@ -133,6 +133,16 @@ const entity = vec.extend({
       level: z.number().int().min(1).max(10),
     })
     .nullable(),
+  // Đòn thường chờ tới mốc trúng đòn (Mục 1); bản lưu cũ không có field này.
+  strike: z
+    .object({
+      targetId: z.string(),
+      startedAt: integer,
+      resolveAt: integer,
+      cycleTicks: integer,
+    })
+    .nullable()
+    .optional(),
   brain: z.enum([
     "idle",
     "patrol",
@@ -423,8 +433,7 @@ export function validateSave(input: unknown): GameSnapshot {
         !d ||
         i.quantity > d.stack ||
         ids.has(i.id) ||
-        ((i.enhancement || i.gems?.length) &&
-          !isEquipment(d.kind)) ||
+        ((i.enhancement || i.gems?.length) && !isEquipment(d.kind)) ||
         (i.gems?.length ?? 0) > ((i.enhancement ?? 0) >= 3 ? 2 : 1) ||
         (i.gems ?? []).some(
           (id) => items.find((d) => d.id === id)?.kind !== "gem",
@@ -652,9 +661,7 @@ export class SaveRepository {
       latest = mine[0];
     if (latest) {
       if (Date.now() - latest.savedAt < BACKUP_INTERVAL_MS) return;
-      if (
-        JSON.stringify(latest.snapshot) === JSON.stringify(previous.snapshot)
-      )
+      if (JSON.stringify(latest.snapshot) === JSON.stringify(previous.snapshot))
         return;
     }
     await this.db.backups.put({

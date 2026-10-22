@@ -28,6 +28,19 @@ export interface BrainContext {
     entityId?: string,
   ) => CombatEntity;
 }
+/**
+ * Pha quyết định cố định theo id (Mục 3): mỗi quái lệch pha trong chu kỳ AI,
+ * tần suất quyết định trung bình không đổi (vẫn đúng 1 lần/chu kỳ) và pha xác
+ * định theo id nên test lặp lại được.
+ */
+export function decisionPhase(id: string, cycle: number) {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) | 0;
+  return Math.abs(hash) % cycle;
+}
+export function onDecisionTick(id: string, tick: number, cycle: number) {
+  return (tick + decisionPhase(id, cycle)) % cycle === 0;
+}
 export function updateMonster(e: CombatEntity, ctx: BrainContext) {
   const s = ctx.state,
     d = monsters.find((m) => m.id === e.definitionId)!;
@@ -47,7 +60,7 @@ export function updateMonster(e: CombatEntity, ctx: BrainContext) {
       distance(e, a) - distance(e, b) ||
       compareStableText(a.id, b.id),
   )[0];
-  if (s.tick % 20 === 0)
+  if (onDecisionTick(e.id, s.tick, 20))
     for (const id of Object.keys(e.threat)) {
       e.threat[id] *= 0.93;
       if (e.threat[id] < 0.1) delete e.threat[id];
@@ -61,7 +74,8 @@ export function updateMonster(e: CombatEntity, ctx: BrainContext) {
       e.hp = e.maxHp;
       e.path = [];
     } else {
-      if (s.tick % 10 === 0) e.path = findPath(map, e, e.spawn, 300);
+      if (onDecisionTick(e.id, s.tick, 10))
+        e.path = findPath(map, e, e.spawn, 300);
       e.hp = Math.min(e.maxHp, e.hp + 1);
       e.mp = Math.min(e.maxMp, e.mp + 2);
     }
@@ -73,7 +87,7 @@ export function updateMonster(e: CombatEntity, ctx: BrainContext) {
       e.brain = "return";
       return;
     }
-    if (s.tick % 80 === 0) {
+    if (onDecisionTick(e.id, s.tick, 80)) {
       e.brain = "patrol";
       e.path = findPath(
         map,
@@ -88,7 +102,7 @@ export function updateMonster(e: CombatEntity, ctx: BrainContext) {
     return;
   }
   e.targetId = target.id;
-  if (d.brain === "pack" && s.tick % 20 === 0)
+  if (d.brain === "pack" && onDecisionTick(e.id, s.tick, 20))
     for (const ally of ctx.nearby?.(e, 4) ?? Object.values(s.entities))
       if (
         ally.definitionId === e.definitionId &&
@@ -185,7 +199,7 @@ export function updateMonster(e: CombatEntity, ctx: BrainContext) {
   if (
     (d.brain === "ranged" || d.brain === "poison") &&
     distance(e, target) < 2.5 &&
-    s.tick % 12 === 0
+    onDecisionTick(e.id, s.tick, 12)
   ) {
     const dx = e.x - target.x,
       dy = e.y - target.y,
@@ -220,6 +234,7 @@ export function updateMonster(e: CombatEntity, ctx: BrainContext) {
       ctx.combat.basic(e, target);
   } else {
     e.brain = "chase";
-    if (s.tick % 12 === 0) e.path = findPath(map, e, target, 240);
+    if (onDecisionTick(e.id, s.tick, 12))
+      e.path = findPath(map, e, target, 240);
   }
 }

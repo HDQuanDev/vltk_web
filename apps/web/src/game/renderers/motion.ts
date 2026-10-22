@@ -142,3 +142,54 @@ export function knockbackOffset(elapsedMs: number, maxPx = KNOCKBACK_PX) {
   }
   return 0;
 }
+
+/** Trễ giữ frame đi bộ sau khi dừng (Mục 4). */
+export const STAND_DELAY_MS = 120;
+
+/** Mờ chồng khi đổi trạng thái (Mục 6.1). */
+export const TRANSITION_FADE_MS = 75;
+
+/** Thời gian co giãn nhẹ khi vào trạng thái (Mục 6.2). */
+export const STATE_SCALE_MS = 90;
+
+/** Thời gian làm mềm lật hướng (Mục 6.3). */
+export const FLIP_TURN_MS = 70;
+
+/**
+ * Hệ số co giãn khi vào trạng thái (Mục 6.2): attack giãn theo hướng mặt,
+ * hit nén ngược; về 1,0 theo ease-out trong STATE_SCALE_MS. Trạng thái khác
+ * (walk/stand/run/cast...) trả 1,1.
+ */
+export function stateScale(state: string, elapsedMs: number) {
+  if (!ENABLE_MOTION_SMOOTHING) return { x: 1, y: 1 };
+  const target =
+    state === "attack"
+      ? { x: 1.05, y: 0.96 }
+      : state === "hit"
+        ? { x: 0.95, y: 1.05 }
+        : { x: 1, y: 1 };
+  if (target.x === 1 && target.y === 1) return target;
+  const t = Math.max(0, Math.min(1, elapsedMs / STATE_SCALE_MS));
+  // Vào trạng thái là mức lớn nhất, rồi trả về 1,0 theo ease-out.
+  const remain = (1 - t) * (1 - t);
+  return { x: 1 + (target.x - 1) * remain, y: 1 + (target.y - 1) * remain };
+}
+
+/**
+ * Làm mềm lật hướng (Mục 6.3): scaleX đi qua 0,82 trong FLIP_TURN_MS thay vì
+ * lật tức thì. `elapsedMs` = thời gian kể từ lúc đổi flipX.
+ */
+export function flipScale(elapsedMs: number) {
+  if (!ENABLE_MOTION_SMOOTHING) return 1;
+  if (elapsedMs >= FLIP_TURN_MS) return 1;
+  const t = Math.max(0, elapsedMs / FLIP_TURN_MS);
+  // 0 → 0.82 (giữa) → 1: nửa đầu thu nhỏ, nửa sau trả lại.
+  return t < 0.5 ? 1 - 0.18 * (t / 0.5) : 0.82 + 0.18 * ((t - 0.5) / 0.5);
+}
+
+/** Alpha của ghost khi chuyển trạng thái (Mục 6.1): 0,55 → 0 trong 75ms. */
+export function transitionAlpha(elapsedMs: number) {
+  if (!ENABLE_MOTION_SMOOTHING) return 0;
+  const t = Math.max(0, Math.min(1, elapsedMs / TRANSITION_FADE_MS));
+  return 0.55 * (1 - t);
+}

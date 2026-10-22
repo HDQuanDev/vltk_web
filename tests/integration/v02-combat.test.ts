@@ -129,7 +129,8 @@ describe("Combat v2: projectile, cast, effect pipeline", () => {
     w.player.autoAttack = false;
     m.attackRange = 1.5;
     m.nextAttack = 0;
-    ticks(w, 1);
+    // Sát thương của đòn thường rơi ở mốc 35% chu kỳ (Mục 1), quái 40 tick/đòn.
+    ticks(w, 18);
     expect(shield.magnitude).toBeLessThan(before);
     expect(w.player.hp).toBe(hp);
     w.player.statuses.push({

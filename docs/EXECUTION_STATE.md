@@ -1,3 +1,24 @@
+# Phiên gói cảm giác: mốc 35% chu kỳ, lunge, pha AI, trễ walk→stand, đi vừa đánh, chuyển động mềm (v0.6.1) — 22/10/2026 (mới nhất)
+
+Scope: `packages/game-core` (combat, AI, di chuyển, protocol/storage schema), `apps/web/src/game` (motion + WorldScene). Không đổi chỉ số cân bằng, không thêm thư viện, không sinh hình.
+
+## Đã làm
+
+- **Mục 1 (mốc 35%)**: `combat/runtime.ts` thêm `DAMAGE_POINT_RATIO = 0.35`, `ATTACK_RANGE_SLACK = 0.4`, `MOVE_WHILE_ATTACK_SPEED = 0.55`. `basic()` không trừ HP ngay mà ghi `p.strike` (mốc trúng đòn) — `protocol` thêm `StrikePlan` + `strike?` (optional, bản lưu cũ vẫn hợp lệ), `storage` thêm field optional. `update()` chốt đòn tại `resolveAt`: hủy nếu kẻ tấn công chết, bỏ qua nếu mục tiêu đã chết. Chu kỳ đòn/hồi chiêu không đổi ⇒ DPS đứng yên không đổi.
+- **Mục 2 (lunge)**: `WorldScene.stepMotion()` dùng `lungeOffset()` — lao tới tối đa `LUNGE_PX = 8` px, đỉnh đúng mốc 35%, ease-out vào / ease-in-out ra; `strike = null` là về 0 ngay. Chưa làm lunge 5px cho kỹ năng cận chiến.
+- **Mục 3 (pha AI)**: `ai/brain.ts` thêm `decisionPhase(id, cycle)` + `onDecisionTick()`; 5 cổng `s.tick % N` (20/10/80/12) nay lệch pha theo id, tần suất vẫn đúng 1 lần/chu kỳ.
+- **Mục 4 (trễ walk→stand)**: `motion.ts` `STAND_DELAY_MS = 120`; `syncActorSprite()` giữ frame đi bộ 120ms sau khi dừng, hủy trễ nếu đi lại, cắt khi dổi map/dịch chuyển.
+- **Mục 5 (vừa đi vừa đánh)**: `basic()` không còn khoá di chuyển; hai nhánh di chuyển nhân 0,55 khi đang có `strike`; mặt hướng mục tiêu khi còn trong tầm; tại 35% dùng `attackRange + ATTACK_RANGE_SLACK` (ngoài tầm = trượt, chu kỳ vẫn kết thúc). Renderer chỉ chớp frame attack trong ±60ms quanh mốc trúng khi đang đi.
+- **Mục 6 (chuyển động mềm)**: `motion.ts` thêm `TRANSITION_FADE_MS = 75`, `STATE_SCALE_MS = 90`, `FLIP_TURN_MS = 70` + `stateScale()`, `flipScale()`, `transitionAlpha()`; `WorldScene` có ghost sprite (1/actor, tái sử dụng) chỉ khi đổi TRẠNG THÁI, scale attack/hit, lật hướng đi qua 0,82. Tất cả tắt theo `ENABLE_MOTION_SMOOTHING`.
+- **Phiên bản**: bump `0.6.1` (nguồn duy nhất: `version` trong package.json gốc, `version.ts` đọc qua define của Vite).
+
+## Kiểm chứng
+
+- `tsc --noEmit` PASS, `eslint .` PASS, `pnpm build` PASS, `vitest run` **396/396**.
+- Thêm `tests/integration/strike-timing.test.ts` (7 case): không trừ HP lúc bắt đầu, trừ đúng 35% (±1 tick), lượng sát thương chu kỳ sau bằng đúng chu kỳ đầu (DPS không đổi), hủy đòn khi attacker chết, bỏ qua khi target chết, vẫn di chuyển khi có strike, đòn trượt ngoài tầm+slack, pha AI khác nhau theo id, hằng số Mục 4/6.
+- Sửa 1 test combat đổi thời điểm: `tests/integration/v02-combat.test.ts` ("shield tiêu hao trước HP…") `ticks(w, 1)` → `ticks(w, 18)` — chỉ đổi thời điểm, không nới assertion sát thương.
+- Cảm giác mượt (Mục 4/5/6) và hiển thị ghost/squash/flip: **chưa kiểm chứng trực quan** — cần người chơi xác nhận trên máy thật.
+
 # Phiên sửa 3 lỗi tự nhặt đồ / nhật ký của tự chiến — 22/10/2026 (mới nhất)
 
 Scope: `packages/game-core/src/engine/world.ts` (nhặt đồ, tự chiến, step), `apps/web/src/app/App.tsx` (nhật ký UI). Không đổi cân bằng rơi đồ/kinh tế, không đổi AI chọn mục tiêu, không đổi panel cấu hình tự chiến.

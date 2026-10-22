@@ -37,7 +37,7 @@ import {
 } from "../world/navigation";
 import { deriveStats, experienceForLevel } from "../combat/formulas";
 import { addItem, canAddItem, INVENTORY_CAPACITY } from "../inventory/items";
-import { CombatRuntime } from "../combat/runtime";
+import { CombatRuntime, MOVE_WHILE_ATTACK_SPEED } from "../combat/runtime";
 import {
   characterBonuses,
   directionFromDelta,
@@ -1544,6 +1544,7 @@ export class GameWorld {
     t.targetId = null;
     t.casting = null;
     t.statuses = [];
+    t.strike = null;
     this.emit("death", `${t.name} đã gục ngã.`, {
       entityId: t.id,
       targetId: killer.id,
@@ -1928,7 +1929,9 @@ export class GameWorld {
         const step =
           (e.movementSpeed *
             (1 - Math.min(0.8, statusValue(e, "slow"))) *
-            (1 + Math.min(0.6, statusValue(e, "haste")))) /
+            (1 + Math.min(0.6, statusValue(e, "haste"))) *
+            // Mục 5: trong chu kỳ đòn thường vẫn đi được, chậm hơn 0.55 lần.
+            (e.strike ? MOVE_WHILE_ATTACK_SPEED : 1)) /
           TICK_RATE;
         const map = getMap(e.mapId);
         const next = { x: e.x + input.x * step, y: e.y + input.y * step };
@@ -1960,7 +1963,8 @@ export class GameWorld {
           speed =
             e.movementSpeed *
             (1 - Math.min(0.8, statusValue(e, "slow"))) *
-            (1 + Math.min(0.6, statusValue(e, "haste"))),
+            (1 + Math.min(0.6, statusValue(e, "haste"))) *
+            (e.strike ? MOVE_WHILE_ATTACK_SPEED : 1),
           step = speed / TICK_RATE;
         if (!isWalkable(getMap(e.mapId), next)) {
           e.path = [];
@@ -1978,6 +1982,19 @@ export class GameWorld {
         }
         setAnimation(e, "walk", s.tick);
       } else if (e.state === "walk") setAnimation(e, "idle", s.tick);
+      // Mục 5.2: đang vừa đi vừa ra đòn và mục tiêu còn trong tầm → mặt hướng
+      // mục tiêu; ngoài tầm thì giữ hướng di chuyển.
+      const strikeTarget = e.strike ? s.entities[e.strike.targetId] : null;
+      if (
+        strikeTarget &&
+        strikeTarget.hp > 0 &&
+        strikeTarget.mapId === e.mapId &&
+        distance(e, strikeTarget) <= e.attackRange
+      )
+        e.direction = directionFromDelta({
+          x: strikeTarget.x - e.x,
+          y: strikeTarget.y - e.y,
+        });
       if (progress?.pendingInteraction) {
         const id = progress.pendingInteraction;
         const resource = id.startsWith("resource:")

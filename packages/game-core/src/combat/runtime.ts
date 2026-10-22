@@ -24,6 +24,12 @@ import {
   setAnimation,
   statusValue,
 } from "./stats";
+/** Mốc trúng đòn trong một chu kỳ đòn thường (Mục 1). */
+export const DAMAGE_POINT_RATIO = 0.35;
+/** Độ nới tầm đánh khi vừa di chuyển vừa ra đòn (Mục 5). */
+export const ATTACK_RANGE_SLACK = 0.4;
+/** Hệ số tốc độ di chuyển trong lúc đang ra đòn thường (Mục 5). */
+export const MOVE_WHILE_ATTACK_SPEED = 0.55;
 export interface CombatContext {
   state: GameSnapshot;
   random: SeededRandom;
@@ -435,7 +441,22 @@ export class CombatRuntime {
       if (e.hp <= 0) {
         e.statuses = [];
         e.casting = null;
+        e.strike = null;
         continue;
+      }
+      // Mục 1: tới mốc 35% mới áp sát thương/ hiệu ứng của đòn thường.
+      const pending = e.strike;
+      if (pending && pending.resolveAt <= s.tick) {
+        e.strike = null;
+        const target = s.entities[pending.targetId];
+        if (target && target.hp > 0 && target.mapId === e.mapId) {
+          // Mục 5.3: đang di chuyển thì nới tầm thêm ATTACK_RANGE_SLACK,
+          // ngoài tầm là đòn trượt (không sát thương, chu kỳ vẫn kết thúc).
+          const moving = e.path.length > 0 || e.movementInput !== null;
+          const limit = e.attackRange + (moving ? ATTACK_RANGE_SLACK : 0);
+          if (distance(e, target) <= limit)
+            this.hit(e, target, 1, { source: "basic" });
+        }
       }
       for (const effect of e.statuses) {
         if (effect.expiresAt < s.tick) continue;
@@ -553,9 +574,10 @@ export class CombatRuntime {
     if (!this.canAct(p) || this.s.tick < p.nextAttack) return;
     const progress = this.context.progress(p),
       haste = Math.min(0.6, statusValue(p, "haste"));
-    p.nextAttack =
-      this.s.tick + Math.max(6, Math.round(p.attackInterval * (1 - haste)));
-    p.path = [];
+    const cycleTicks = Math.max(6, Math.round(p.attackInterval * (1 - haste)));
+    p.nextAttack = this.s.tick + cycleTicks;
+    // Mục 5: không khóa di chuyển nữa — trong chu kỳ đòn vẫn đi được với hệ số
+    // MOVE_WHILE_ATTACK_SPEED (áp ở tầng di chuyển của world).
     this.face(p, t);
     setAnimation(p, "attack", this.s.tick, 6);
     this.context.emit("skill", "Đánh thường", {
@@ -585,7 +607,16 @@ export class CombatRuntime {
         0,
         p.attackRange + 1,
       );
-    else this.hit(p, t, 1, { source: "basic" });
+    else
+      // Mục 1: đòn cận chiến không trừ HP ngay — lên lịch tại 35% chu kỳ đòn.
+      p.strike = {
+        targetId: t.id,
+        startedAt: this.s.tick,
+        resolveAt:
+          this.s.tick +
+          Math.max(1, Math.round(cycleTicks * DAMAGE_POINT_RATIO)),
+        cycleTicks,
+      };
     if (progress && getSect(progress.classId).element !== p.element)
       p.element = getSect(progress.classId).element;
   }

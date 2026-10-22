@@ -88,8 +88,8 @@ describe("motion (Phần B)", () => {
 
 describe("phiên bản hiển thị (A3)", () => {
   it("một nguồn duy nhất, đúng định dạng yêu cầu", () => {
-    expect(APP_VERSION).toBe("0.6.0");
-    expect(APP_VERSION_LABEL).toMatch(/^v0\.6\.0 · \d{2}\/\d{2}\/\d{4}$/);
+    expect(APP_VERSION).toBe("0.6.1");
+    expect(APP_VERSION_LABEL).toMatch(/^v0\.6\.1 · \d{2}\/\d{2}\/\d{4}$/);
     expect(APP_BUILD_LABEL).toBe(`BẢN OFFLINE · ${APP_VERSION_LABEL}`);
   });
 });

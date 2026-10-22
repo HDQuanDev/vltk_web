@@ -44,6 +44,19 @@ export interface CastState {
   resolveAt: number;
   level: number;
 }
+/**
+ * Đòn thường đang chờ tới mốc trúng đòn (35% chu kỳ). Lịch nằm trong hệ tick
+ * của combat nên pause/lưu game không làm lệch thời điểm.
+ */
+export interface StrikePlan {
+  targetId: string;
+  /** Tick bắt đầu chu kỳ đòn. */
+  startedAt: number;
+  /** Tick trúng đòn = startedAt + 35% × cycleTicks. */
+  resolveAt: number;
+  /** Độ dài chu kỳ đòn (tick) để renderer tính tiến độ lunge. */
+  cycleTicks: number;
+}
 export interface Projectile extends Vec2 {
   id: string;
   mapId: string;
@@ -192,6 +205,8 @@ export interface CombatEntity extends Vec2 {
   stateStartedAt: number;
   statuses: StatusEffect[];
   casting: CastState | null;
+  /** Đòn thường đang chờ trúng đòn (Mục 1). Bản lưu cũ không có field này. */
+  strike?: StrikePlan | null;
   brain:
     | "idle"
     | "patrol"

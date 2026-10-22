@@ -35,6 +35,11 @@ import {
   settleBob,
   shadowScale,
   shouldAdoptDirection,
+  STAND_DELAY_MS,
+  flipScale,
+  stateScale,
+  transitionAlpha,
+  lungeOffset,
 } from "../renderers/motion";
 import {
   hasMonsterSprites,
@@ -114,6 +119,19 @@ interface MotionState {
   knockMax: number;
   /** Dừng hình cực ngắn: giữ nguyên hiển thị tới mốc này (ms). */
   frozenUntil: number;
+  /** Có đang di chuyển thật trong khung này không (dùng cho Mục 4/5.6). */
+  walking: boolean;
+  /** Mốc ms của lần đi bộ gần nhất (Mục 4: trễ walk→stand 120ms). */
+  lastWalkAt: number;
+  /** Trạng thái đang vẽ + mốc bắt đầu hiệu ứng scale (Mục 6.2). */
+  drawState: string;
+  stateEnteredAt: number;
+  /** Lần đổi flipX gần nhất (Mục 6.3). */
+  flipAt: number;
+  flip: boolean;
+  /** Ghost mờ dần khi đổi trạng thái (Mục 6.1). */
+  ghostTexture: string | null;
+  ghostStartedAt: number;
 }
 /** Nguồn ảnh sprite của một actor: quái hoặc nhân vật theo (phái, giới). */
 type SpriteSource =
@@ -128,6 +146,8 @@ type SpriteSource =
 interface EntityView {
   container: Phaser.GameObjects.Container;
   sprite: Phaser.GameObjects.Image;
+  /** Ảnh mờ của frame cũ khi đổi trạng thái (Mục 6.1). */
+  ghost: Phaser.GameObjects.Image;
   bar: Phaser.GameObjects.Graphics;
   ring: Phaser.GameObjects.Ellipse;
   /** Vòng sáng vàng dưới chân tinh anh (B2). */
@@ -597,9 +617,16 @@ export class WorldScene extends Phaser.Scene {
       .setOrigin(0.5);
     const bar = this.add.graphics();
     container.add([shadow, enhanceGlow, eliteRing, ring, sprite, label, bar]);
+    // Ghost đặt dưới sprite chính, chỉ dùng khi đổi trạng thái (Mục 6.1).
+    const ghost = this.add
+      .image(0, 0, sprite.texture.key)
+      .setOrigin(0.5, sprite.originY);
+    ghost.setVisible(false);
+    container.addAt(ghost, container.getIndex(sprite));
     const view: EntityView = {
       container,
       sprite,
+      ghost,
       bar,
       ring,
       eliteRing,
@@ -621,50 +648,94 @@ export class WorldScene extends Phaser.Scene {
    * file thì giữ bản vẽ thủ tục của atlas — không lỗi, không để ô trống.
    */
   private syncActorSprite(e: CombatEntity, v: EntityView) {
+    const now = performance.now();
+    const m = v.motion;
     const elapsed = this.snapshot.tick - e.stateStartedAt;
     const source = v.spriteSource;
-    // Tinh anh vẽ lớn hơn 1,35 lần bằng tỉ lệ vẽ; không sửa file ảnh (B2.2).
     const eliteScale = e.elite ? ELITE_SCALE : 1;
-    if (source) {
-      const lowHp = e.maxHp > 0 && e.hp / e.maxHp <= hurtHpRatio;
-      // Hướng vẽ theo hysteresis (B2.4), khung chân theo quãng đường (B2.1).
-      const drawDirection = v.motion.direction as CombatEntity["direction"];
-      const distancePx = v.motion.distance;
-      const frame =
-        source.kind === "monster"
-          ? monsterSpriteFrame(
-              source.definitionId,
-              e.state,
-              drawDirection,
-              elapsed,
-              { lowHp, distancePx },
-            )
-          : actorSpriteFrame(
-              source.sectId,
-              source.appearance,
-              e.state,
-              drawDirection,
-              elapsed,
-              { lowHp, distancePx },
-            );
-      const owner =
-        source.kind === "monster" ? source.definitionId : source.owner;
-      const cache =
-        source.kind === "monster" ? this.monsterSprites : this.actorSprites;
-      const key = frame ? (cache?.key(owner, frame.url) ?? null) : null;
-      if (frame && key) {
-        if (v.sprite.texture.key !== key) v.sprite.setTexture(key);
-        v.sprite
-          .setOrigin(0.5, spriteOriginY)
-          .setFlipX(frame.flipX)
-          .setDisplaySize(
-            source.height * eliteScale,
-            source.height * eliteScale,
-          );
-        return;
-      }
+
+    // Mục 4: giữ frame đi bộ thêm STAND_DELAY_MS sau khi dừng (chỉ lớp hiển thị).
+    if (e.state === "walk") m.lastWalkAt = now;
+    let displayState: CombatEntity["state"] = e.state;
+    if (e.state === "idle" && now - m.lastWalkAt < STAND_DELAY_MS)
+      displayState = "walk";
+    // Mục 5.6: đang đi mà ra đòn thì chỉ chớp frame attack quanh mốc trúng đòn.
+    if (e.state === "attack" && e.strike && m.walking) {
+      const hitInMs =
+        (e.strike.resolveAt - this.snapshot.tick) * (1000 / TICK_RATE);
+      if (Math.abs(hitInMs) > 60) displayState = "walk";
     }
-    if (v.sprite.texture.key !== v.atlas.key) {
+    const previousState = m.drawState;
+    if (displayState !== previousState) {
+      m.drawState = displayState;
+      m.stateEnteredAt = now;
+    }
+
+    const drawDirection = m.direction as CombatEntity["direction"];
+    const distancePx = m.distance;
+    const lowHp = e.maxHp > 0 && e.hp / e.maxHp <= hurtHpRatio;
+    const frame = source
+      ? source.kind === "monster"
+        ? monsterSpriteFrame(
+            source.definitionId,
+            displayState,
+            drawDirection,
+            elapsed,
+            { lowHp, distancePx },
+          )
+        : actorSpriteFrame(
+            source.sectId,
+            source.appearance,
+            displayState,
+            drawDirection,
+            elapsed,
+            { lowHp, distancePx },
+          )
+      : null;
+    const owner =
+      source?.kind === "monster"
+        ? source.definitionId
+        : source
+          ? source.owner
+          : "";
+    const cache =
+      source?.kind === "monster" ? this.monsterSprites : this.actorSprites;
+    const key = frame && source ? (cache?.key(owner, frame.url) ?? null) : null;
+
+    if (frame && key && source) {
+      // Mục 6.1: chỉ khi đổi TRẠNG THÁI mới giữ frame cũ trên ghost mờ dần.
+      if (v.sprite.texture.key !== key) {
+        if (
+          ENABLE_MOTION_SMOOTHING &&
+          previousState !== "" &&
+          previousState !== displayState
+        ) {
+          v.ghost.setTexture(v.sprite.texture.key);
+          v.ghost.setVisible(true);
+          v.ghost.setAlpha(0.55);
+          m.ghostStartedAt = now;
+        }
+        v.sprite.setTexture(key);
+      }
+      if (frame.flipX !== m.flip) {
+        m.flip = frame.flipX;
+        m.flipAt = now;
+      }
+      const stateK = stateScale(e.state, now - m.stateEnteredAt);
+      const flipK = flipScale(now - m.flipAt);
+      const width = source.height * eliteScale * stateK.x * flipK,
+        height = source.height * eliteScale * stateK.y;
+      v.sprite
+        .setOrigin(0.5, spriteOriginY)
+        .setFlipX(frame.flipX)
+        .setDisplaySize(width, height);
+      if (v.ghost.visible)
+        v.ghost
+          .setOrigin(0.5, spriteOriginY)
+          .setPosition(v.sprite.x, v.sprite.y)
+          .setFlipX(v.sprite.flipX)
+          .setDisplaySize(width, height);
+    } else if (v.sprite.texture.key !== v.atlas.key) {
       v.sprite
         .setTexture(v.atlas.key)
         .setOrigin(0.5, 88 / 96)
@@ -674,15 +745,23 @@ export class WorldScene extends Phaser.Scene {
           v.atlas.height * eliteScale,
         );
     }
-    v.sprite.setFrame(
-      animationFrame(
-        e.state,
-        e.direction,
-        this.snapshot.tick,
-        e.stateStartedAt,
-      ),
-    );
+    if (!frame || !key)
+      v.sprite.setFrame(
+        animationFrame(
+          e.state,
+          e.direction,
+          this.snapshot.tick,
+          e.stateStartedAt,
+        ),
+      );
+    // Mục 6.1: ghost mờ dần 0,55 → 0 trong TRANSITION_FADE_MS.
+    if (v.ghost.visible) {
+      const alpha = transitionAlpha(now - m.ghostStartedAt);
+      if (alpha <= 0.01) v.ghost.setVisible(false);
+      else v.ghost.setAlpha(alpha);
+    }
   }
+
   update(time: number, delta: number) {
     if (!this.snapshot) return;
     const updateStart = performance.now();
@@ -884,6 +963,14 @@ export class WorldScene extends Phaser.Scene {
       knockY: 0,
       knockMax: 0,
       frozenUntil: 0,
+      walking: false,
+      lastWalkAt: 0,
+      drawState: "",
+      stateEnteredAt: now,
+      flipAt: 0,
+      flip: false,
+      ghostTexture: null,
+      ghostStartedAt: 0,
     };
   }
   /**
@@ -958,8 +1045,28 @@ export class WorldScene extends Phaser.Scene {
       knockX = m.knockX * offset;
       knockY = m.knockY * offset;
     }
+    m.walking = walking;
     m.bob = walking ? bobOffset(m.distance) : settleBob(m.bob, delta);
-    return { x: px + knockX, y: py + knockY, bob: m.bob };
+    // Mục 2: lao tới hiển thị của đòn thường, đỉnh đúng mốc 35% chu kỳ; đòn bị
+    // cắt ngang (e.strike = null) thì offset về 0 ngay trong khung này.
+    let lungeX = 0,
+      lungeY = 0;
+    const strike = e.strike;
+    if (strike) {
+      const target = this.snapshot.entities[strike.targetId];
+      if (target && target.mapId === e.mapId) {
+        const progress =
+          (this.snapshot.tick + alpha - strike.startedAt) /
+          Math.max(1, strike.cycleTicks);
+        const amount = lungeOffset(progress);
+        const dx = (target.x - e.x - (target.y - e.y)) * 48,
+          dy = (target.x - e.x + (target.y - e.y)) * 24;
+        const length = Math.hypot(dx, dy) || 1;
+        lungeX = (dx / length) * amount;
+        lungeY = (dy / length) * amount;
+      }
+    }
+    return { x: px + knockX + lungeX, y: py + knockY + lungeY, bob: m.bob };
   }
   /** Bắt đầu cú trượt lùi hiển thị khi trúng đòn (B3.3). */
   private startKnockback(victimId: string) {
