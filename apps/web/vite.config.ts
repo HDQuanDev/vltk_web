@@ -102,7 +102,7 @@ export default defineConfig({
   server: { port: 5173, allowedHosts },
   preview: { allowedHosts },
   build: {
-    outDir: "dist",
+    outDir: "../../dist",
     emptyOutDir: true,
     rollupOptions: { output: { manualChunks: { phaser: ["phaser"] } } },
   },
